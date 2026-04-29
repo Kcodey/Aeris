@@ -1,0 +1,125 @@
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select, func, desc
+
+from aeris.models.trace import LLMTrace
+from aeris.models.message import Message
+from aeris.models.conversation import Conversation
+
+
+class MonitoringService:
+    """Monitoring and analytics service."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+
+    async def get_dashboard_stats(self, days: int = 7) -> Dict[str, Any]:
+        """Get dashboard statistics."""
+        since = datetime.utcnow() - timedelta(days=days)
+
+        # Message counts
+        message_result = await self.session.execute(
+            select(func.count(Message.id))
+            .where(Message.created_at >= since)
+        )
+        total_messages = message_result.scalar() or 0
+
+        # Token usage
+        token_result = await self.session.execute(
+            select(
+                func.sum(Message.input_tokens),
+                func.sum(Message.output_tokens),
+            )
+            .where(Message.created_at >= since)
+        )
+        row = token_result.first()
+        input_tokens = row[0] or 0
+        output_tokens = row[1] or 0
+
+        # Conversation counts
+        conv_result = await self.session.execute(
+            select(func.count(Conversation.id))
+            .where(Conversation.created_at >= since)
+        )
+        total_conversations = conv_result.scalar() or 0
+
+        # Average latency
+        latency_result = await self.session.execute(
+            select(func.avg(LLMTrace.latency_ms))
+            .where(LLMTrace.timestamp >= since)
+        )
+        avg_latency = latency_result.scalar() or 0
+
+        return {
+            "period_days": days,
+            "total_messages": total_messages,
+            "total_conversations": total_conversations,
+            "input_tokens": int(input_tokens),
+            "output_tokens": int(output_tokens),
+            "total_tokens": int(input_tokens + output_tokens),
+            "avg_latency_ms": round(avg_latency, 2),
+        }
+
+    async def get_traces(
+        self,
+        user_id: Optional[int] = None,
+        conversation_id: Optional[int] = None,
+        provider: Optional[str] = None,
+        error_only: bool = False,
+        skip: int = 0,
+        limit: int = 50,
+    ) -> List[LLMTrace]:
+        """Get LLM traces with filters."""
+        query = select(LLMTrace).order_by(desc(LLMTrace.timestamp))
+
+        if user_id:
+            query = query.where(LLMTrace.user_id == user_id)
+        if conversation_id:
+            query = query.where(LLMTrace.conversation_id == conversation_id)
+        if provider:
+            query = query.where(LLMTrace.provider == provider)
+        if error_only:
+            query = query.where(LLMTrace.error_type.isnot(None))
+
+        query = query.offset(skip).limit(limit)
+        result = await self.session.execute(query)
+        return result.scalars().all()
+
+    async def get_trace_detail(self, trace_id: str) -> Optional[LLMTrace]:
+        """Get single trace detail."""
+        result = await self.session.execute(
+            select(LLMTrace).where(LLMTrace.trace_id == trace_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def get_model_usage(self, days: int = 7) -> List[Dict[str, Any]]:
+        """Get usage by model."""
+        since = datetime.utcnow() - timedelta(days=days)
+
+        result = await self.session.execute(
+            select(
+                LLMTrace.provider,
+                LLMTrace.model,
+                func.count(LLMTrace.trace_id).label('count'),
+                func.sum(LLMTrace.input_tokens).label('input_tokens'),
+                func.sum(LLMTrace.output_tokens).label('output_tokens'),
+                func.avg(LLMTrace.latency_ms).label('avg_latency'),
+            )
+            .where(LLMTrace.timestamp >= since)
+            .group_by(LLMTrace.provider, LLMTrace.model)
+            .order_by(desc('count'))
+        )
+
+        return [
+            {
+                "provider": row[0],
+                "model": row[1],
+                "count": row[2],
+                "input_tokens": int(row[3] or 0),
+                "output_tokens": int(row[4] or 0),
+                "avg_latency_ms": round(row[5] or 0, 2),
+            }
+            for row in result.all()
+        ]

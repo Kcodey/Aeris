@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aeris.config import get_settings
 from aeris.database import init_db
-from aeris.routers import auth, health, chat, ws, files, tasks
+from aeris.routers import auth, health, chat, ws, files, tasks, monitoring
 
 settings = get_settings()
 
@@ -63,6 +63,7 @@ app.include_router(health.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(files.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
+app.include_router(monitoring.router, prefix="/api/v1")
 app.include_router(ws.router)
 
 
