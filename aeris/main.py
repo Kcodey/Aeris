@@ -15,6 +15,14 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     await init_db()
+
+    # Register tools
+    from aeris.tools.base import get_tool_registry
+    from aeris.tools.conversation_search import register_conversation_search_tool
+
+    registry = get_tool_registry()
+    register_conversation_search_tool(registry)
+
     yield
     # Shutdown
 
