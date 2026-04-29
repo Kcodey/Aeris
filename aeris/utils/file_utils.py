@@ -1,12 +1,11 @@
 """File utilities for path handling, security checks, and MIME detection."""
 
+import mimetypes
 import os
 import re
 import uuid
 from pathlib import Path
 from typing import Tuple
-
-import magic
 
 # Allowed mime types for upload
 ALLOWED_MIME_TYPES = {
@@ -91,11 +90,9 @@ def ensure_user_directory(base_path: str, user_id: int) -> Path:
 
 
 def detect_mime_type(file_path: Path) -> str:
-    """Detect MIME type of file."""
-    try:
-        return magic.from_file(str(file_path), mime=True)
-    except Exception:
-        return "application/octet-stream"
+    """Detect MIME type of file using standard library."""
+    mime_type, _ = mimetypes.guess_type(str(file_path))
+    return mime_type or "application/octet-stream"
 
 
 def is_allowed_mime_type(mime_type: str) -> bool:

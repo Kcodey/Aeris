@@ -21,7 +21,7 @@ async def get_file_service(
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
     file: Annotated[UploadFile, File(...)],
-    conversation_id: Annotated[Optional[int], Form(None)] = None,
+    conversation_id: Annotated[Optional[int], Form()] = None,
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     file_service: Annotated[FileService, Depends(get_file_service)] = None,
 ):
