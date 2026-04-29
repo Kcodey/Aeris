@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     sglang_base_url: str = "http://localhost:30000/v1"
     sglang_model: str = "default"
 
+    # Thinking / Reasoning (for models like QwQ)
+    thinking_enabled: bool = False
+    thinking_budget_tokens: int = 8192
+
 
 @lru_cache
 def get_settings() -> Settings:

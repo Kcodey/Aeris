@@ -281,9 +281,12 @@ class ProviderManager:
         # For now, use default SGLang provider from env
         provider_config = {
             "type": "sglang",
-            "base_url": getattr(config, "sglang_base_url", "http://localhost:30000/v1"),
-            "model": getattr(config, "sglang_model", "default"),
-            "thinking": {"enabled": False},
+            "base_url": config.sglang_base_url,
+            "model": config.sglang_model,
+            "thinking": {
+                "enabled": config.thinking_enabled,
+                "budget_tokens": config.thinking_budget_tokens,
+            },
         }
 
         if provider_config["type"] == "sglang":
