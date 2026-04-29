@@ -283,10 +283,7 @@ class ProviderManager:
             "type": "sglang",
             "base_url": config.sglang_base_url,
             "model": config.sglang_model,
-            "thinking": {
-                "enabled": config.thinking_enabled,
-                "budget_tokens": config.thinking_budget_tokens,
-            },
+            "thinking": {"enabled": False},  # 代码内控制 thinking
         }
 
         if provider_config["type"] == "sglang":
