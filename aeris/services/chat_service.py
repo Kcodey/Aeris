@@ -1,0 +1,170 @@
+from typing import List, Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select, desc
+
+from aeris.models.conversation import Conversation
+from aeris.models.message import Message
+from aeris.schemas.chat import ConversationCreate, MessageCreate
+from aeris.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
+from aeris.services.tokenizer import get_tokenizer
+
+
+class ChatService:
+    """Chat business logic service."""
+
+    def __init__(self, session: AsyncSession):
+        self.session = session
+        self.agent_engine: AgentEngine = get_agent_engine()
+        self.tokenizer = get_tokenizer()
+
+    async def create_conversation(
+        self,
+        user_id: int,
+        data: ConversationCreate,
+    ) -> Conversation:
+        """Create a new conversation."""
+        conversation = Conversation(
+            user_id=user_id,
+            title=data.title,
+        )
+        self.session.add(conversation)
+        await self.session.commit()
+        await self.session.refresh(conversation)
+        return conversation
+
+    async def get_conversation(
+        self,
+        user_id: int,
+        conversation_id: int,
+    ) -> Optional[Conversation]:
+        """Get conversation by ID."""
+        result = await self.session.execute(
+            select(Conversation)
+            .where(Conversation.id == conversation_id)
+            .where(Conversation.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
+
+    async def list_conversations(
+        self,
+        user_id: int,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> List[Conversation]:
+        """List user's conversations."""
+        result = await self.session.execute(
+            select(Conversation)
+            .where(Conversation.user_id == user_id)
+            .where(Conversation.status == "active")
+            .order_by(desc(Conversation.updated_at))
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    async def get_conversation_messages(
+        self,
+        conversation_id: int,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> List[Message]:
+        """Get messages in a conversation."""
+        result = await self.session.execute(
+            select(Message)
+            .where(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at)
+            .offset(skip)
+            .limit(limit)
+        )
+        return result.scalars().all()
+
+    async def send_message(
+        self,
+        user_id: int,
+        conversation_id: int,
+        content: str,
+    ) -> dict:
+        """
+        Send a message and get AI response.
+
+        1. Save user message
+        2. Build conversation history
+        3. Run agent
+        4. Save AI response
+        5. Return result
+        """
+        # Save user message
+        user_message = Message(
+            conversation_id=conversation_id,
+            role="user",
+            content=content,
+        )
+        self.session.add(user_message)
+        await self.session.commit()
+        await self.session.refresh(user_message)
+
+        # Get conversation history
+        messages = await self.get_conversation_messages(conversation_id)
+
+        # Build messages for LLM
+        llm_messages = [
+            {"role": "system", "content": "You are a helpful AI assistant."}
+        ]
+        for msg in messages:
+            llm_messages.append({
+                "role": msg.role,
+                "content": msg.content or "",
+            })
+
+        # Run agent
+        context = AgentContext(
+            user_id=user_id,
+            conversation_id=conversation_id,
+            message_id=user_message.id,
+        )
+
+        result = await self.agent_engine.run(llm_messages, context)
+
+        # Save AI response
+        ai_message = Message(
+            conversation_id=conversation_id,
+            role="assistant",
+            content=result.content,
+            input_tokens=result.usage["input_tokens"],
+            output_tokens=result.usage["output_tokens"],
+            tokens_estimated=False,  # SGLang returns actual usage
+        )
+        self.session.add(ai_message)
+        await self.session.commit()
+        await self.session.refresh(ai_message)
+
+        # Update conversation updated_at
+        conversation = await self.get_conversation(user_id, conversation_id)
+        if conversation and not conversation.title:
+            # Auto-generate title from first message
+            from datetime import datetime
+            conversation.title = content[:50] + "..." if len(content) > 50 else content
+        conversation.updated_at = datetime.utcnow()
+        await self.session.commit()
+
+        return {
+            "user_message": user_message,
+            "ai_message": ai_message,
+            "usage": result.usage,
+            "tool_calls": result.tool_calls_executed,
+        }
+
+    async def delete_conversation(
+        self,
+        user_id: int,
+        conversation_id: int,
+    ) -> bool:
+        """Soft delete a conversation."""
+        conversation = await self.get_conversation(user_id, conversation_id)
+        if not conversation:
+            return False
+
+        conversation.status = "deleted"
+        await self.session.commit()
+        return True
