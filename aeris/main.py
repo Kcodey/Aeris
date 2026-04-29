@@ -19,9 +19,11 @@ async def lifespan(app: FastAPI):
     # Register tools
     from aeris.tools.base import get_tool_registry
     from aeris.tools.conversation_search import register_conversation_search_tool
+    from aeris.tools.file_tools import register_file_tools
 
     registry = get_tool_registry()
     register_conversation_search_tool(registry)
+    register_file_tools(registry)
 
     yield
     # Shutdown
