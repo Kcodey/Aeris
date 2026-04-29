@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aeris.config import get_settings
 from aeris.database import init_db
-from aeris.routers import auth, health, chat, ws, files
+from aeris.routers import auth, health, chat, ws, files, tasks
 
 settings = get_settings()
 
@@ -15,6 +15,14 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     await init_db()
+
+    # Initialize task scheduler
+    from aeris.services.agent_engine import get_agent_engine
+    from aeris.services.task_scheduler import get_task_scheduler
+
+    scheduler = get_task_scheduler()
+    scheduler.initialize(get_agent_engine())
+    scheduler.start()
 
     # Register tools
     from aeris.tools.base import get_tool_registry
@@ -26,7 +34,9 @@ async def lifespan(app: FastAPI):
     register_file_tools(registry)
 
     yield
+
     # Shutdown
+    scheduler.shutdown()
 
 
 app = FastAPI(
@@ -50,6 +60,7 @@ app.include_router(auth.router, prefix="/api/v1")
 app.include_router(health.router, prefix="/api/v1")
 app.include_router(chat.router, prefix="/api/v1")
 app.include_router(files.router, prefix="/api/v1")
+app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(ws.router)
 
 
