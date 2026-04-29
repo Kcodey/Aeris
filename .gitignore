@@ -51,3 +51,9 @@ postgres_data/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# macOS
+.DS_Store
+
+# Learn directory
+learn/
