@@ -57,3 +57,6 @@ htmlcov/
 
 # Learn directory
 learn/
+
+# Uploads
+uploads/
