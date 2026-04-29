@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     uploads_dir: str = "./uploads"
     max_file_size: int = 100 * 1024 * 1024  # 100MB
 
+    # LLM Provider (SGLang)
+    sglang_base_url: str = "http://localhost:30000/v1"
+    sglang_model: str = "default"
+
 
 @lru_cache
 def get_settings() -> Settings:
