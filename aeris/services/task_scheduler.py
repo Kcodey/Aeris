@@ -43,7 +43,6 @@ class TaskScheduler:
             executors={
                 "default": {
                     "type": "asyncio",
-                    "max_workers": 10,
                 }
             },
             job_defaults={
