@@ -10,7 +10,7 @@ export const chatApi = {
   getConversations: (params?: { skip?: number; limit?: number }) =>
     api.get<Conversation[]>('/conversations', { params }),
 
-  createConversation: (data?: { title?: string }) =>
+  createConversation: (data: { title?: string } = {}) =>
     api.post<Conversation>('/conversations', data),
 
   getConversation: (id: number) =>

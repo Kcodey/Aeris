@@ -34,7 +34,7 @@ const ChatPage: React.FC = () => {
     setLoading(true)
     try {
       const response = await chatApi.createConversation(
-        newTitle ? { title: newTitle } : undefined
+        newTitle ? { title: newTitle } : {}
       )
       setConversations([response.data, ...conversations])
       setSelectedConversation(response.data.id)
