@@ -72,10 +72,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     }
   }
 
+  // Only the last assistant message gets typing effect
+  const lastAiIndex = messages.map((m, i) => ({ ...m, index: i }))
+    .filter(m => m.role !== 'user')
+    .pop()?.index ?? -1
+
   const items: BubbleDataType[] = messages.map((msg, index) => ({
     key: index,
     role: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content || '',
+    // Only last AI message gets typing animation
+    ...(msg.role !== 'user' && index === lastAiIndex ? { typing: { step: 2, interval: 50 } } : {}),
   }))
 
   if (!conversationId) {
@@ -106,7 +113,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
             ai: {
               placement: 'start',
               avatar: { icon: '🤖', style: { background: '#1677ff' } },
-              typing: { step: 2, interval: 50 },
             },
           }}
         />
