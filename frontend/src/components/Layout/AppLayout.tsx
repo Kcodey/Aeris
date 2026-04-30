@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import { Layout, Menu } from 'antd'
 import {
   MessageOutlined,
-  FileOutlined,
   ClockCircleOutlined,
   DashboardOutlined,
   LogoutOutlined,
@@ -23,7 +22,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onLogout }) => {
 
   const menuItems = [
     { key: '/', icon: <MessageOutlined />, label: '对话' },
-    { key: '/files', icon: <FileOutlined />, label: '文件' },
     { key: '/tasks', icon: <ClockCircleOutlined />, label: '定时任务' },
     { key: '/monitoring', icon: <DashboardOutlined />, label: '监控' },
   ]
