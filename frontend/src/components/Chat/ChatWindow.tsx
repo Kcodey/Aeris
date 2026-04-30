@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Bubble } from '@ant-design/x'
-import { Button, Input, Space, message } from 'antd'
-import { SendOutlined } from '@ant-design/icons'
+import { Button, Input, Space, message, Upload, Tag, Tooltip } from 'antd'
+import { SendOutlined, PaperClipOutlined, FileOutlined, PictureOutlined } from '@ant-design/icons'
 import type { BubbleDataType } from '@ant-design/x/es/bubble'
 import { chatApi, createWebSocket } from '../../services/chat'
 import { Message } from '../../types/chat'
 import { getToken } from '../../utils/token'
+import { fileApi } from '../../services/files'
+import { FileRecord } from '../../types/file'
 
 interface ChatWindowProps {
   conversationId?: number
@@ -16,6 +18,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<FileRecord[]>([])
+  const [uploading, setUploading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
@@ -23,6 +27,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   useEffect(() => {
     if (conversationId) {
       setIsStreaming(false)
+      setAttachedFiles([])
       loadMessages()
     }
   }, [conversationId])
@@ -115,6 +120,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     }
   }
 
+  const handleUpload = async (file: File) => {
+    if (!conversationId) return false
+    setUploading(true)
+    try {
+      const response = await fileApi.uploadFile(file, conversationId)
+      setAttachedFiles((prev) => [...prev, { ...response.data, is_image: response.data.mime_type?.startsWith('image/') }])
+      message.success(`已上传: ${response.data.original_name}`)
+    } catch (error) {
+      message.error('上传失败')
+    } finally {
+      setUploading(false)
+    }
+    return false
+  }
+
+  const removeAttachedFile = async (fileId: number) => {
+    try {
+      await fileApi.deleteFile(fileId)
+      setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
+    } catch (error) {
+      message.error('删除失败')
+    }
+  }
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -152,14 +181,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     setMessages((prev) => [...prev, tempUserMsg, aiPlaceholder])
 
     // Send via WebSocket
+    const currentFileIds = attachedFiles.map((f) => f.id)
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
           type: 'message',
           conversation_id: conversationId,
           content: content,
+          file_ids: currentFileIds,
         })
       )
+      setAttachedFiles([])
     } else {
       message.error('WebSocket 未连接')
       setIsStreaming(false)
@@ -211,8 +243,34 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
         <div ref={messagesEndRef} />
       </div>
 
+      {attachedFiles.length > 0 && (
+        <div style={{ padding: '8px 16px', borderTop: '1px solid #f0f0f0', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {attachedFiles.map((file) => (
+            <Tag
+              key={file.id}
+              icon={file.is_image ? <PictureOutlined /> : <FileOutlined />}
+              closable
+              onClose={(e) => {
+                e.stopPropagation()
+                removeAttachedFile(file.id)
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <Tooltip title={`${file.original_name} (${file.size_display})`}>
+                <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {file.original_name}
+                </span>
+              </Tooltip>
+            </Tag>
+          ))}
+        </div>
+      )}
+
       <div style={{ padding: 16, borderTop: '1px solid #f0f0f0' }}>
         <Space.Compact style={{ width: '100%' }}>
+          <Upload beforeUpload={handleUpload} showUploadList={false} disabled={uploading || loading || isStreaming}>
+            <Button icon={<PaperClipOutlined />} disabled={uploading || loading || isStreaming} loading={uploading} />
+          </Upload>
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
