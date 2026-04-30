@@ -8,6 +8,7 @@ from aeris.database import get_session, get_session_context
 from aeris.routers.auth import verify_token
 from aeris.schemas.chat import StreamingChunk
 from aeris.services.chat_service import ChatService
+from aeris.services.file_service import FileService
 from aeris.services.agent_engine import AgentContext, get_agent_engine
 
 router = APIRouter(tags=["websocket"])
@@ -67,6 +68,59 @@ async def get_current_user_ws(websocket: WebSocket) -> dict:
     }
 
 
+async def build_file_content_messages(
+    session: AsyncSession,
+    user_id: int,
+    file_ids: list,
+    max_image_size: int = 2 * 1024 * 1024,
+) -> tuple:
+    """读取文件内容，构建适合 LLM 的 message parts。
+
+    Returns: (content_parts, warnings)
+    """
+    file_service = FileService(session)
+    content_parts = []
+    warnings = []
+
+    for file_id in file_ids:
+        file_record = await file_service.get_file(user_id, file_id)
+        if not file_record:
+            warnings.append(f"文件 ID {file_id} 不存在或无权访问")
+            continue
+
+        # 图片大小检查
+        if file_record.mime_type.startswith("image/") and file_record.size_bytes > max_image_size:
+            warnings.append(
+                f"图片 {file_record.original_name} 过大 ({file_record.size_bytes} bytes)，"
+                f"已超过 {max_image_size // 1024 // 1024}MB 限制，已跳过"
+            )
+            continue
+
+        try:
+            file_content = await file_service.read_file_content(file_record)
+        except Exception as e:
+            warnings.append(f"文件 {file_record.original_name} 读取失败: {str(e)}")
+            continue
+
+        if file_record.mime_type.startswith("image/"):
+            # OpenAI vision format
+            content_parts.append({
+                "type": "image_url",
+                "image_url": {"url": file_content},
+            })
+        else:
+            # Text content appended as text part
+            text_preview = file_content[:8000]
+            if len(file_content) > 8000:
+                text_preview += "\n... (内容已截断)"
+            content_parts.append({
+                "type": "text",
+                "text": f"[文件: {file_record.original_name}]\n```\n{text_preview}\n```",
+            })
+
+    return content_parts, warnings
+
+
 @router.websocket("/ws/chat")
 async def chat_websocket(websocket: WebSocket):
     """
@@ -93,6 +147,7 @@ async def chat_websocket(websocket: WebSocket):
             if msg_type == "message":
                 conversation_id = data.get("conversation_id")
                 content = data.get("content")
+                file_ids = data.get("file_ids", [])
 
                 if not conversation_id or not content:
                     await websocket.send_json({
@@ -137,6 +192,26 @@ async def chat_websocket(websocket: WebSocket):
                         llm_messages = [
                             {"role": "system", "content": "You are a helpful AI assistant."}
                         ]
+
+                        # Build user message content (may include files)
+                        user_content_parts = []
+
+                        # Add file contents if any
+                        if file_ids:
+                            file_parts, file_warnings = await build_file_content_messages(session, user["user_id"], file_ids)
+                            user_content_parts.extend(file_parts)
+                            for warning in file_warnings:
+                                await websocket.send_json({"type": "warning", "message": warning})
+
+                        # Add text content
+                        user_content_parts.append({"type": "text", "text": content})
+
+                        llm_messages.append({
+                            "role": "user",
+                            "content": user_content_parts,
+                        })
+
+                        # Add conversation history
                         for msg in messages:
                             llm_messages.append({
                                 "role": msg.role,
