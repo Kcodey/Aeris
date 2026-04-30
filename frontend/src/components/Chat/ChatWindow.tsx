@@ -3,6 +3,7 @@ import { Bubble } from '@ant-design/x'
 import { Button, Input, Space, message, Upload, Tag, Tooltip } from 'antd'
 import { SendOutlined, PaperClipOutlined, FileOutlined, PictureOutlined } from '@ant-design/icons'
 import type { BubbleDataType } from '@ant-design/x/es/bubble'
+import ReactMarkdown from 'react-markdown'
 import { chatApi, createWebSocket } from '../../services/chat'
 import { Message } from '../../types/chat'
 import { getToken } from '../../utils/token'
@@ -237,6 +238,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
             ai: {
               placement: 'start',
               avatar: { icon: '🤖', style: { background: '#1677ff' } },
+              messageRender: (content) => (
+                <ReactMarkdown>{String(content || '')}</ReactMarkdown>
+              ),
             },
           }}
         />
