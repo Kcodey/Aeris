@@ -64,3 +64,9 @@ uploads/
 # Node.js
 node_modules/
 frontend/node_modules/
+
+# Claude
+.claude/
+
+# Docs (local only)
+docs/
