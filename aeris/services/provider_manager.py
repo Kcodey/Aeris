@@ -91,17 +91,22 @@ class SGLangProvider(Provider):
         # Prepare tools for OpenAI format
         openai_tools = None
         if tools:
-            openai_tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": t.name,
-                        "description": t.description,
-                        "parameters": t.parameters,
-                    },
-                }
-                for t in tools
-            ]
+            # Tools can be List[ToolDefinition] or List[dict] (schemas)
+            openai_tools = []
+            for t in tools:
+                if isinstance(t, dict):
+                    # Already in OpenAI format
+                    openai_tools.append(t)
+                else:
+                    # ToolDefinition object
+                    openai_tools.append({
+                        "type": "function",
+                        "function": {
+                            "name": t.name,
+                            "description": t.description,
+                            "parameters": t.parameters,
+                        },
+                    })
 
         # Add thinking config if enabled
         extra_body = {}
