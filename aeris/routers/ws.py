@@ -152,20 +152,35 @@ async def chat_websocket(websocket: WebSocket):
 
                         agent_engine = get_agent_engine()
                         full_content = ""
+                        usage = None
+                        error = None
 
                         async for chunk in agent_engine.run_stream(llm_messages, context):
                             await websocket.send_json(chunk)
                             if chunk["type"] == "content":
                                 full_content += chunk.get("content", "")
+                            elif chunk["type"] == "done":
+                                usage = chunk.get("usage")
+                                error = chunk.get("error")
 
                         # Save AI response
                         ai_message = Message(
                             conversation_id=conversation_id,
                             role="assistant",
                             content=full_content if full_content else None,
+                            input_tokens=usage.get("input_tokens") if usage else None,
+                            output_tokens=usage.get("output_tokens") if usage else None,
+                            tokens_estimated=False,
                         )
                         session.add(ai_message)
                         await session.commit()
+
+                        # Send final error if max iterations reached
+                        if error:
+                            await websocket.send_json({
+                                "type": "error",
+                                "error": error,
+                            })
 
                 except Exception as e:
                     await websocket.send_json({
