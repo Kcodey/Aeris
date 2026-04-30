@@ -27,8 +27,15 @@ export interface LLMTrace {
   timestamp: string
   latency_ms: number
   first_token_ms?: number
+  tokens_per_second?: number
   input_tokens: number
   output_tokens: number
+  tokens_estimated?: boolean
+  request_payload?: Record<string, any>
+  response_payload?: Record<string, any>
+  tool_calls?: any[]
+  tool_results?: any[]
+  iteration_count?: number
   error_type?: string
   error_message?: string
 }
