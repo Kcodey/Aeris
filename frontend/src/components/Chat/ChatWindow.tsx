@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Bubble, useXAgent, useXChat } from '@ant-design/x'
+import { Bubble } from '@ant-design/x'
 import { Button, Input, Space, message } from 'antd'
 import { SendOutlined } from '@ant-design/icons'
 import type { BubbleDataType } from '@ant-design/x/es/bubble'
+import { chatApi } from '../../services/chat'
+import { Message } from '../../types/chat'
 
 interface ChatWindowProps {
   conversationId?: number
@@ -11,23 +13,25 @@ interface ChatWindowProps {
 const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
+  const [messages, setMessages] = useState<Message[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const agent = useXAgent<string>({
-    request: async ({ message }, { onSuccess, onError }) => {
-      try {
-        // TODO: Implement WebSocket or API call
-        // For now, simulate response
-        setTimeout(() => {
-          onSuccess(`Response to: ${message}`)
-        }, 1000)
-      } catch (error) {
-        onError(error as Error)
-      }
-    },
-  })
+  // Load conversation messages
+  useEffect(() => {
+    if (conversationId) {
+      loadMessages()
+    }
+  }, [conversationId])
 
-  const { onRequest, messages } = useXChat({ agent })
+  const loadMessages = async () => {
+    if (!conversationId) return
+    try {
+      const response = await chatApi.getConversation(conversationId)
+      setMessages(response.data.messages || [])
+    } catch (error) {
+      console.error('Failed to load messages:', error)
+    }
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -37,17 +41,57 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return
-    onRequest(inputValue)
+  const handleSend = async () => {
+    if (!inputValue.trim() || !conversationId) return
+
+    const content = inputValue
     setInputValue('')
+    setLoading(true)
+
+    // Add user message immediately
+    const tempMessage: Message = {
+      id: Date.now(),
+      conversation_id: conversationId,
+      role: 'user',
+      content: content,
+      created_at: new Date().toISOString(),
+    }
+    setMessages((prev) => [...prev, tempMessage])
+
+    try {
+      const response = await chatApi.sendMessage(conversationId, {
+        message: content,
+      })
+      // Reload messages to get the assistant response
+      await loadMessages()
+    } catch (error) {
+      message.error('发送消息失败')
+      console.error('Failed to send message:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const items: BubbleDataType[] = messages.map((msg, index) => ({
     key: index,
-    role: msg.status === 'local' ? 'user' : 'ai',
-    content: msg.message,
+    role: msg.role === 'user' ? 'user' : 'ai',
+    content: msg.content || '',
   }))
+
+  if (!conversationId) {
+    return (
+      <div
+        style={{
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <span style={{ color: '#999' }}>选择一个对话或创建新对话</span>
+      </div>
+    )
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
