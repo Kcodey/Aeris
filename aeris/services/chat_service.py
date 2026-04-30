@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -143,9 +144,9 @@ class ChatService:
         conversation = await self.get_conversation(user_id, conversation_id)
         if conversation and not conversation.title:
             # Auto-generate title from first message
-            from datetime import datetime
             conversation.title = content[:50] + "..." if len(content) > 50 else content
-        conversation.updated_at = datetime.utcnow()
+        if conversation:
+            conversation.updated_at = datetime.utcnow()
         await self.session.commit()
 
         return {
