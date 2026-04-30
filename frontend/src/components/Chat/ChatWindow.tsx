@@ -3,8 +3,9 @@ import { Bubble } from '@ant-design/x'
 import { Button, Input, Space, message } from 'antd'
 import { SendOutlined } from '@ant-design/icons'
 import type { BubbleDataType } from '@ant-design/x/es/bubble'
-import { chatApi } from '../../services/chat'
+import { chatApi, createWebSocket } from '../../services/chat'
 import { Message } from '../../types/chat'
+import { getToken } from '../../utils/token'
 
 interface ChatWindowProps {
   conversationId?: number
@@ -14,28 +15,92 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
-  const [typingMessageId, setTypingMessageId] = useState<number | null>(null)
-  const [pendingAiMessageId, setPendingAiMessageId] = useState<number | null>(null)
+  const [isStreaming, setIsStreaming] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const wsRef = useRef<WebSocket | null>(null)
 
   // Load conversation messages
   useEffect(() => {
     if (conversationId) {
-      setTypingMessageId(null)
-      setPendingAiMessageId(null)
+      setIsStreaming(false)
       loadMessages()
     }
   }, [conversationId])
 
-  // Clear typing effect after 2 seconds
+  // WebSocket connection
   useEffect(() => {
-    if (typingMessageId !== null) {
-      const timer = setTimeout(() => {
-        setTypingMessageId(null)
-      }, 2000)
-      return () => clearTimeout(timer)
+    if (!conversationId) return
+
+    const token = getToken()
+    if (!token) return
+
+    const ws = createWebSocket(token)
+    wsRef.current = ws
+
+    ws.onopen = () => {
+      console.log('WebSocket connected')
     }
-  }, [typingMessageId])
+
+    ws.onmessage = (event) => {
+      const chunk = JSON.parse(event.data)
+
+      switch (chunk.type) {
+        case 'content':
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1]
+            if (lastMsg && lastMsg.role === 'assistant') {
+              const updated = [...prev]
+              updated[updated.length - 1] = {
+                ...lastMsg,
+                content: (lastMsg.content || '') + chunk.content,
+              }
+              return updated
+            }
+            return prev
+          })
+          break
+        case 'tool_call':
+          setMessages((prev) => {
+            const lastMsg = prev[prev.length - 1]
+            if (lastMsg && lastMsg.role === 'assistant') {
+              const updated = [...prev]
+              updated[updated.length - 1] = {
+                ...lastMsg,
+                content: (lastMsg.content || '') + `\n[调用工具: ${chunk.name}]`,
+              }
+              return updated
+            }
+            return prev
+          })
+          break
+        case 'done':
+          setIsStreaming(false)
+          setLoading(false)
+          break
+        case 'error':
+          message.error(chunk.error || '流式输出出错')
+          setIsStreaming(false)
+          setLoading(false)
+          break
+      }
+    }
+
+    ws.onerror = () => {
+      message.error('WebSocket 连接出错')
+      setIsStreaming(false)
+      setLoading(false)
+    }
+
+    ws.onclose = () => {
+      setIsStreaming(false)
+      setLoading(false)
+    }
+
+    return () => {
+      ws.close()
+      wsRef.current = null
+    }
+  }, [conversationId])
 
   const loadMessages = async () => {
     if (!conversationId) return
@@ -55,16 +120,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     scrollToBottom()
   }, [messages])
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || !conversationId) return
+  const handleSend = () => {
+    if (!inputValue.trim() || !conversationId || isStreaming) return
 
     const content = inputValue
     setInputValue('')
     setLoading(true)
-    setTypingMessageId(null) // Clear previous typing
+    setIsStreaming(true)
 
     // Add user message immediately
-    const tempMessage: Message = {
+    const tempUserMsg: Message = {
       id: Date.now(),
       conversation_id: conversationId,
       role: 'user',
@@ -72,36 +137,30 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
       created_at: new Date().toISOString(),
     }
 
-    // Add AI loading placeholder
-    const loadingAiId = Date.now() + 1
-    const loadingAiMessage: Message = {
-      id: loadingAiId,
+    // Add AI placeholder
+    const aiPlaceholder: Message = {
+      id: Date.now() + 1,
       conversation_id: conversationId,
       role: 'assistant',
       content: '',
       created_at: new Date().toISOString(),
     }
-    setPendingAiMessageId(loadingAiId)
-    setMessages((prev) => [...prev, tempMessage, loadingAiMessage])
 
-    try {
-      const response = await chatApi.sendMessage(conversationId, {
-        message: content,
-      })
-      const aiMsg = response.data.message
-      if (aiMsg) {
-        // Replace loading placeholder with actual response
-        setMessages((prev) => prev.map((msg) => (msg.id === loadingAiId ? aiMsg : msg)))
-        setTypingMessageId(aiMsg.id)
-      }
-    } catch (error) {
-      message.error('发送消息失败')
-      // Remove loading placeholder on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== loadingAiId))
-      console.error('Failed to send message:', error)
-    } finally {
+    setMessages((prev) => [...prev, tempUserMsg, aiPlaceholder])
+
+    // Send via WebSocket
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'message',
+          conversation_id: conversationId,
+          content: content,
+        })
+      )
+    } else {
+      message.error('WebSocket 未连接')
+      setIsStreaming(false)
       setLoading(false)
-      setPendingAiMessageId(null)
     }
   }
 
@@ -109,14 +168,6 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     key: msg.id,
     role: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content || '',
-    // Show loading for the pending AI placeholder
-    ...(msg.role !== 'user' && msg.id === pendingAiMessageId
-      ? { loading: true }
-      : {}),
-    // Only the newly received AI message gets typing animation
-    ...(msg.role !== 'user' && msg.id === typingMessageId
-      ? { typing: { step: 2, interval: 50 } }
-      : {}),
   }))
 
   if (!conversationId) {
@@ -160,13 +211,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
             onChange={(e) => setInputValue(e.target.value)}
             onPressEnter={handleSend}
             placeholder="输入消息..."
-            disabled={loading}
+            disabled={loading || isStreaming}
           />
           <Button
             type="primary"
             icon={<SendOutlined />}
             onClick={handleSend}
-            loading={loading}
+            loading={loading || isStreaming}
           >
             发送
           </Button>
