@@ -10,28 +10,6 @@ import { getToken } from '../../utils/token'
 import { fileApi } from '../../services/files'
 import { FileRecord } from '../../types/file'
 
-const CopyButton: React.FC<{ text: string }> = ({ text }) => {
-  const [copied, setCopied] = useState(false)
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (e) {
-      message.error('复制失败')
-    }
-  }
-  return (
-    <Button
-      size="small"
-      style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}
-      onClick={handleCopy}
-    >
-      {copied ? '已复制' : '复制'}
-    </Button>
-  )
-}
-
 interface ChatWindowProps {
   conversationId?: number
 }
@@ -295,20 +273,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
                     img: ({ src, alt }) => (
                       <Image src={src} alt={alt} style={{ maxWidth: '100%', borderRadius: 4 }} preview />
                     ),
-                    pre: ({ children }) => {
-                      let codeText = ''
-                      React.Children.forEach(children, (child) => {
-                        if (React.isValidElement(child) && child.type === 'code') {
-                          codeText = String(child.props.children || '')
-                        }
-                      })
-                      return (
-                        <div style={{ position: 'relative' }}>
-                          <CopyButton text={codeText} />
-                          <pre>{children}</pre>
-                        </div>
-                      )
-                    },
+                    pre: ({ children }) => <pre>{children}</pre>,
                   }}
                 >
                   {String(content || '')}
