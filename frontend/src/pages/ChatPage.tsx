@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Layout, List, Button, Input, Typography, message } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Layout, List, Button, Input, Typography, message, Dropdown, Modal } from 'antd'
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import ChatWindow from '../components/Chat/ChatWindow'
 import { chatApi } from '../services/chat'
 import { Conversation } from '../types/chat'
@@ -46,6 +46,29 @@ const ChatPage: React.FC = () => {
     }
   }
 
+  const handleDelete = async (conversation: Conversation) => {
+    Modal.confirm({
+      title: '删除对话',
+      content: `确定删除对话「${conversation.title || '未命名对话'}」吗？`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      async onOk() {
+        try {
+          await chatApi.deleteConversation(conversation.id)
+          setConversations((prev) => prev.filter((c) => c.id !== conversation.id))
+          if (selectedConversation === conversation.id) {
+            const remaining = conversations.filter((c) => c.id !== conversation.id)
+            setSelectedConversation(remaining.length > 0 ? remaining[0].id : null)
+          }
+          message.success('删除成功')
+        } catch (error) {
+          message.error('删除失败')
+        }
+      },
+    })
+  }
+
   return (
     <Layout style={{ height: '100%', background: '#fff', overflow: 'hidden' }}>
       <Sider
@@ -71,18 +94,33 @@ const ChatPage: React.FC = () => {
         <List
           dataSource={conversations}
           renderItem={(item) => (
-            <List.Item
-              style={{
-                padding: '12px 16px',
-                cursor: 'pointer',
-                background: selectedConversation === item.id ? '#e6f7ff' : 'transparent',
+            <Dropdown
+              menu={{
+                items: [
+                  {
+                    key: 'delete',
+                    label: '删除',
+                    icon: <DeleteOutlined />,
+                    danger: true,
+                    onClick: () => handleDelete(item),
+                  },
+                ],
               }}
-              onClick={() => setSelectedConversation(item.id)}
+              trigger={['contextMenu']}
             >
-              <Text ellipsis style={{ width: '100%' }}>
-                {item.title || '未命名对话'}
-              </Text>
-            </List.Item>
+              <List.Item
+                style={{
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                  background: selectedConversation === item.id ? '#e6f7ff' : 'transparent',
+                }}
+                onClick={() => setSelectedConversation(item.id)}
+              >
+                <Text ellipsis style={{ width: '100%' }}>
+                  {item.title || '未命名对话'}
+                </Text>
+              </List.Item>
+            </Dropdown>
           )}
         />
       </Sider>
