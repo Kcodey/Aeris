@@ -27,10 +27,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     }
   }, [conversationId])
 
-  // WebSocket connection
+  // WebSocket connection — established once, reused across conversations
   useEffect(() => {
-    if (!conversationId) return
-
     const token = getToken()
     if (!token) return
 
@@ -86,21 +84,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     }
 
     ws.onerror = () => {
-      message.error('WebSocket 连接出错')
-      setIsStreaming(false)
-      setLoading(false)
+      // Only show error if this is still the active socket
+      if (wsRef.current === ws) {
+        message.error('WebSocket 连接出错')
+        setIsStreaming(false)
+        setLoading(false)
+      }
     }
 
     ws.onclose = () => {
-      setIsStreaming(false)
-      setLoading(false)
+      if (wsRef.current === ws) {
+        setIsStreaming(false)
+        setLoading(false)
+      }
     }
 
     return () => {
-      ws.close()
       wsRef.current = null
+      ws.close()
     }
-  }, [conversationId])
+  }, [])
 
   const loadMessages = async () => {
     if (!conversationId) return
@@ -168,6 +171,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     key: msg.id,
     role: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content || '',
+    // Show loading for the AI placeholder while streaming
+    ...(msg.role !== 'user' && msg.content === '' && isStreaming
+      ? { loading: true }
+      : {}),
   }))
 
   if (!conversationId) {
