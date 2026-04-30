@@ -36,6 +36,14 @@ class CompletionResponse:
     first_token_ms: Optional[int]
 
 
+@dataclass
+class StreamChunk:
+    type: str  # "content" | "tool_call" | "usage"
+    content: Optional[str] = None
+    tool_call: Optional[ToolCall] = None
+    usage: Optional[Dict[str, Any]] = None
+
+
 class Provider(ABC):
     """Abstract base class for LLM providers."""
 
@@ -58,6 +66,15 @@ class Provider(ABC):
     @abstractmethod
     async def count_tokens(self, text: str) -> int:
         """Count tokens in text (for fallback estimation)."""
+        pass
+
+    @abstractmethod
+    async def chat_completion_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[ToolDefinition]] = None,
+    ):
+        """Stream chat completion, yielding StreamChunk objects."""
         pass
 
 
@@ -237,6 +254,120 @@ class SGLangProvider(Provider):
                 latency_ms=latency_ms,
                 first_token_ms=None,  # No streaming
             )
+
+    async def chat_completion_stream(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[ToolDefinition]] = None,
+    ):
+        """Stream chat completion, yielding StreamChunk objects as they arrive."""
+        import time
+        start_time = time.time()
+        first_token_time = None
+
+        # Prepare tools for OpenAI format
+        openai_tools = None
+        if tools:
+            openai_tools = []
+            for t in tools:
+                if isinstance(t, dict):
+                    openai_tools.append(t)
+                else:
+                    openai_tools.append({
+                        "type": "function",
+                        "function": {
+                            "name": t.name,
+                            "description": t.description,
+                            "parameters": t.parameters,
+                        },
+                    })
+
+        # Add thinking config if enabled
+        extra_body = {}
+        if self.thinking_enabled and self.thinking_budget:
+            extra_body["reasoning"] = True
+            extra_body["reasoning_budget"] = self.thinking_budget
+
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            tools=openai_tools,
+            stream=True,
+            extra_body=extra_body if extra_body else None,
+        )
+
+        content_parts = []
+        tool_calls_parts = {}
+        usage = None
+
+        async for chunk in response:
+            if first_token_time is None:
+                first_token_time = time.time()
+
+            delta = chunk.choices[0].delta
+
+            # Content
+            if delta.content:
+                content_parts.append(delta.content)
+                yield StreamChunk(type="content", content=delta.content)
+
+            # Tool calls
+            if delta.tool_calls:
+                for tc in delta.tool_calls:
+                    if tc.index not in tool_calls_parts:
+                        tool_calls_parts[tc.index] = {
+                            "id": tc.id,
+                            "name": tc.function.name or "",
+                            "arguments": tc.function.arguments or "",
+                        }
+                    else:
+                        if tc.function.arguments:
+                            tool_calls_parts[tc.index]["arguments"] += tc.function.arguments
+
+            # Usage in last chunk (some providers send this)
+            if hasattr(chunk, "usage") and chunk.usage:
+                usage = chunk.usage
+
+        end_time = time.time()
+        latency_ms = int((end_time - start_time) * 1000)
+        first_token_ms = int((first_token_time - start_time) * 1000) if first_token_time else None
+
+        # Yield collected tool calls
+        for idx in sorted(tool_calls_parts.keys()):
+            tc = tool_calls_parts[idx]
+            yield StreamChunk(
+                type="tool_call",
+                tool_call=ToolCall(
+                    id=tc["id"],
+                    name=tc["name"],
+                    arguments=tc["arguments"],
+                ),
+            )
+
+        # Yield usage
+        input_tokens = 0
+        output_tokens = 0
+        usage_from_api = False
+
+        if usage:
+            input_tokens = usage.prompt_tokens
+            output_tokens = usage.completion_tokens
+            usage_from_api = True
+        else:
+            input_tokens = await self.count_tokens(json.dumps(messages))
+            output_tokens = await self.count_tokens("".join(content_parts))
+            usage_from_api = False
+
+        yield StreamChunk(
+            type="usage",
+            usage={
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "usage_from_api": usage_from_api,
+                "latency_ms": latency_ms,
+                "first_token_ms": first_token_ms,
+            },
+        )
 
     async def count_tokens(self, text: str) -> int:
         """Count tokens using SGLang /tokenize endpoint, fallback to estimation."""

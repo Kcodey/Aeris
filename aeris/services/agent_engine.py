@@ -192,18 +192,105 @@ class AgentEngine:
         Run agent with streaming output.
 
         Yields chunks of content as they arrive.
+        Supports tool calls: streaming pauses for tool execution, then resumes.
         """
-        # TODO: Implement streaming version for WebSocket
-        # For now, use non-streaming and yield at once
-        result = await self.run(messages, context)
-        yield {
-            "type": "content",
-            "content": result.content,
-        }
+        import time
+        start_time = time.time()
+
+        tool_schemas = self.tool_registry.get_schemas()
+        provider = self.provider_manager.get_provider(context.provider_name)
+
+        working_messages = messages.copy()
+        tool_calls_executed = []
+
+        while context.iteration_count < context.max_iterations:
+            full_content = ""
+            iteration_tool_calls = []
+
+            async for chunk in provider.chat_completion_stream(
+                messages=working_messages,
+                tools=tool_schemas,
+            ):
+                if chunk.type == "content":
+                    full_content += chunk.content
+                    yield {
+                        "type": "content",
+                        "content": chunk.content,
+                    }
+                elif chunk.type == "tool_call":
+                    iteration_tool_calls.append(chunk.tool_call)
+                    yield {
+                        "type": "tool_call",
+                        "name": chunk.tool_call.name,
+                        "arguments": chunk.tool_call.arguments,
+                    }
+                elif chunk.type == "usage":
+                    context.record_usage(
+                        chunk.usage["input_tokens"],
+                        chunk.usage["output_tokens"],
+                    )
+
+            if not iteration_tool_calls:
+                end_time = time.time()
+                latency_ms = int((end_time - start_time) * 1000)
+                yield {
+                    "type": "done",
+                    "usage": {
+                        "input_tokens": context.total_input_tokens,
+                        "output_tokens": context.total_output_tokens,
+                    },
+                    "iterations": context.iteration_count + 1,
+                    "latency_ms": latency_ms,
+                }
+                return
+
+            # Execute tool calls
+            assistant_message = {
+                "role": "assistant",
+                "content": full_content or "",
+                "tool_calls": [
+                    {
+                        "id": tc.id,
+                        "type": "function",
+                        "function": {
+                            "name": tc.name,
+                            "arguments": tc.arguments,
+                        },
+                    }
+                    for tc in iteration_tool_calls
+                ],
+            }
+            working_messages.append(assistant_message)
+
+            for tool_call in iteration_tool_calls:
+                result = await self._execute_tool(tool_call, context)
+                tool_calls_executed.append({
+                    "tool": tool_call.name,
+                    "arguments": tool_call.arguments,
+                    "result": result,
+                })
+
+                tool_message = {
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps(result.data) if result.success else result.error,
+                }
+                working_messages.append(tool_message)
+
+            context.iteration_count += 1
+
+        # Max iterations reached
+        end_time = time.time()
+        latency_ms = int((end_time - start_time) * 1000)
         yield {
             "type": "done",
-            "usage": result.usage,
-            "iterations": result.iterations,
+            "usage": {
+                "input_tokens": context.total_input_tokens,
+                "output_tokens": context.total_output_tokens,
+            },
+            "iterations": context.max_iterations,
+            "latency_ms": latency_ms,
+            "error": "Max iterations reached",
         }
 
 
