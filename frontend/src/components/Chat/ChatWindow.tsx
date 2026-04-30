@@ -10,6 +10,28 @@ import { getToken } from '../../utils/token'
 import { fileApi } from '../../services/files'
 import { FileRecord } from '../../types/file'
 
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false)
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (e) {
+      message.error('复制失败')
+    }
+  }
+  return (
+    <Button
+      size="small"
+      style={{ position: 'absolute', top: 8, right: 8, zIndex: 1 }}
+      onClick={handleCopy}
+    >
+      {copied ? '已复制' : '复制'}
+    </Button>
+  )
+}
+
 interface ChatWindowProps {
   conversationId?: number
 }
@@ -239,7 +261,29 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
               placement: 'start',
               avatar: { icon: '🤖', style: { background: '#1677ff' } },
               messageRender: (content) => (
-                <ReactMarkdown>{String(content || '')}</ReactMarkdown>
+                <ReactMarkdown
+                  components={{
+                    a: ({ node, ...props }) => (
+                      <a {...props} target="_blank" rel="noopener noreferrer" />
+                    ),
+                    pre: ({ children }) => {
+                      let codeText = ''
+                      React.Children.forEach(children, (child) => {
+                        if (React.isValidElement(child) && child.type === 'code') {
+                          codeText = String(child.props.children || '')
+                        }
+                      })
+                      return (
+                        <div style={{ position: 'relative' }}>
+                          <CopyButton text={codeText} />
+                          <pre>{children}</pre>
+                        </div>
+                      )
+                    },
+                  }}
+                >
+                  {String(content || '')}
+                </ReactMarkdown>
               ),
             },
           }}
