@@ -80,7 +80,15 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onLogout }) => {
         />
       </Sider>
       <Layout>
-        <Content style={{ margin: 16, background: '#fff', borderRadius: 8 }}>
+        <Content
+          style={{
+            margin: 16,
+            background: '#fff',
+            borderRadius: 8,
+            height: 'calc(100vh - 32px)',
+            overflow: 'hidden',
+          }}
+        >
           {children}
         </Content>
       </Layout>

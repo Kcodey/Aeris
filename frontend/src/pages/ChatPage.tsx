@@ -47,8 +47,16 @@ const ChatPage: React.FC = () => {
   }
 
   return (
-    <Layout style={{ height: '100%', background: '#fff' }}>
-      <Sider width={250} theme="light" style={{ borderRight: '1px solid #f0f0f0' }}>
+    <Layout style={{ height: '100%', background: '#fff', overflow: 'hidden' }}>
+      <Sider
+        width={250}
+        theme="light"
+        style={{
+          borderRight: '1px solid #f0f0f0',
+          height: '100%',
+          overflow: 'auto',
+        }}
+      >
         <div style={{ padding: 16 }}>
           <Button
             type="primary"
@@ -78,7 +86,7 @@ const ChatPage: React.FC = () => {
           )}
         />
       </Sider>
-      <Content>
+      <Content style={{ height: '100%', overflow: 'hidden' }}>
         {selectedConversation ? (
           <ChatWindow conversationId={selectedConversation} />
         ) : (

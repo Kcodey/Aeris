@@ -14,14 +14,28 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
+  const [typingMessageId, setTypingMessageId] = useState<number | null>(null)
+  const [pendingAiMessageId, setPendingAiMessageId] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Load conversation messages
   useEffect(() => {
     if (conversationId) {
+      setTypingMessageId(null)
+      setPendingAiMessageId(null)
       loadMessages()
     }
   }, [conversationId])
+
+  // Clear typing effect after 2 seconds
+  useEffect(() => {
+    if (typingMessageId !== null) {
+      const timer = setTimeout(() => {
+        setTypingMessageId(null)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [typingMessageId])
 
   const loadMessages = async () => {
     if (!conversationId) return
@@ -47,6 +61,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     const content = inputValue
     setInputValue('')
     setLoading(true)
+    setTypingMessageId(null) // Clear previous typing
 
     // Add user message immediately
     const tempMessage: Message = {
@@ -56,33 +71,52 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
       content: content,
       created_at: new Date().toISOString(),
     }
-    setMessages((prev) => [...prev, tempMessage])
+
+    // Add AI loading placeholder
+    const loadingAiId = Date.now() + 1
+    const loadingAiMessage: Message = {
+      id: loadingAiId,
+      conversation_id: conversationId,
+      role: 'assistant',
+      content: '',
+      created_at: new Date().toISOString(),
+    }
+    setPendingAiMessageId(loadingAiId)
+    setMessages((prev) => [...prev, tempMessage, loadingAiMessage])
 
     try {
       const response = await chatApi.sendMessage(conversationId, {
         message: content,
       })
-      // Reload messages to get the assistant response
-      await loadMessages()
+      const aiMsg = response.data.message
+      if (aiMsg) {
+        // Replace loading placeholder with actual response
+        setMessages((prev) => prev.map((msg) => (msg.id === loadingAiId ? aiMsg : msg)))
+        setTypingMessageId(aiMsg.id)
+      }
     } catch (error) {
       message.error('发送消息失败')
+      // Remove loading placeholder on error
+      setMessages((prev) => prev.filter((msg) => msg.id !== loadingAiId))
       console.error('Failed to send message:', error)
     } finally {
       setLoading(false)
+      setPendingAiMessageId(null)
     }
   }
 
-  // Only the last assistant message gets typing effect
-  const lastAiIndex = messages.map((m, i) => ({ ...m, index: i }))
-    .filter(m => m.role !== 'user')
-    .pop()?.index ?? -1
-
-  const items: BubbleDataType[] = messages.map((msg, index) => ({
-    key: index,
+  const items: BubbleDataType[] = messages.map((msg) => ({
+    key: msg.id,
     role: msg.role === 'user' ? 'user' : 'ai',
     content: msg.content || '',
-    // Only last AI message gets typing animation
-    ...(msg.role !== 'user' && index === lastAiIndex ? { typing: { step: 2, interval: 50 } } : {}),
+    // Show loading for the pending AI placeholder
+    ...(msg.role !== 'user' && msg.id === pendingAiMessageId
+      ? { loading: true }
+      : {}),
+    // Only the newly received AI message gets typing animation
+    ...(msg.role !== 'user' && msg.id === typingMessageId
+      ? { typing: { step: 2, interval: 50 } }
+      : {}),
   }))
 
   if (!conversationId) {
