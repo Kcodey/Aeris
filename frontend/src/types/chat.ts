@@ -5,6 +5,8 @@ export interface Message {
   content: string | null;
   tool_calls?: any[];
   created_at: string;
+  // 前端扩展：关联的文件记录（用于图片展示）
+  file_records?: any[];
 }
 
 export interface Conversation {

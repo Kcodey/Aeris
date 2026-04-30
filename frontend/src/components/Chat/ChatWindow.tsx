@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { Bubble } from '@ant-design/x'
-import { Button, Input, Space, message, Upload, Tag, Tooltip } from 'antd'
+import { Button, Input, Space, message, Upload, Tag, Tooltip, Image } from 'antd'
 import { SendOutlined, PaperClipOutlined, FileOutlined, PictureOutlined } from '@ant-design/icons'
 import type { BubbleDataType } from '@ant-design/x/es/bubble'
 import ReactMarkdown from 'react-markdown'
@@ -42,6 +42,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<FileRecord[]>([])
+  const [filePreviews, setFilePreviews] = useState<Record<number, string>>({})
   const [uploading, setUploading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const wsRef = useRef<WebSocket | null>(null)
@@ -145,12 +146,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
 
   const handleUpload = async (file: File) => {
     if (!conversationId) return false
+    const previewUrl = URL.createObjectURL(file)
     setUploading(true)
     try {
       const response = await fileApi.uploadFile(file, conversationId)
-      setAttachedFiles((prev) => [...prev, { ...response.data, is_image: response.data.mime_type?.startsWith('image/') }])
+      const fileRecord = { ...response.data, is_image: response.data.mime_type?.startsWith('image/') }
+      setAttachedFiles((prev) => [...prev, fileRecord])
+      setFilePreviews((prev) => ({ ...prev, [response.data.id]: previewUrl }))
       message.success(`已上传: ${response.data.original_name}`)
     } catch (error) {
+      URL.revokeObjectURL(previewUrl)
       message.error('上传失败')
     } finally {
       setUploading(false)
@@ -190,6 +195,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
       role: 'user',
       content: content,
       created_at: new Date().toISOString(),
+      file_records: attachedFiles,
     }
 
     // Add AI placeholder
@@ -230,6 +236,26 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
     ...(msg.role !== 'user' && msg.content === '' && isStreaming
       ? { loading: true }
       : {}),
+    // Show attached images for user messages
+    ...(msg.role === 'user' && (msg as any).file_records?.length
+      ? {
+          footer: (
+            <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+              {(msg as any).file_records.map((file: FileRecord) =>
+                file.is_image && filePreviews[file.id] ? (
+                  <Image
+                    key={file.id}
+                    src={filePreviews[file.id]}
+                    width={120}
+                    style={{ borderRadius: 4, objectFit: 'cover' }}
+                    preview
+                  />
+                ) : null
+              )}
+            </div>
+          ),
+        }
+      : {}),
   }))
 
   if (!conversationId) {
@@ -265,6 +291,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
                   components={{
                     a: ({ node, ...props }) => (
                       <a {...props} target="_blank" rel="noopener noreferrer" />
+                    ),
+                    img: ({ src, alt }) => (
+                      <Image src={src} alt={alt} style={{ maxWidth: '100%', borderRadius: 4 }} preview />
                     ),
                     pre: ({ children }) => {
                       let codeText = ''
