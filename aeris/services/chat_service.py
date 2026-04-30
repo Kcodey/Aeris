@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, desc
+from sqlmodel import select, desc, delete, func
 
 from aeris.models.conversation import Conversation
 from aeris.models.message import Message
@@ -168,4 +168,41 @@ class ChatService:
 
         conversation.status = "deleted"
         await self.session.commit()
+
+        # Trigger cleanup if deleted count exceeds threshold
+        await self._cleanup_deleted_conversations()
         return True
+
+    async def _cleanup_deleted_conversations(self, threshold: int = 100, batch_size: int = 20):
+        """
+        Hard delete oldest soft-deleted conversations when count exceeds threshold.
+        Also cascades to delete associated messages.
+        """
+        # Count soft-deleted conversations
+        result = await self.session.execute(
+            select(func.count(Conversation.id)).where(Conversation.status == "deleted")
+        )
+        deleted_count = result.scalar()
+
+        if deleted_count <= threshold:
+            return
+
+        # Find oldest soft-deleted conversations to remove
+        result = await self.session.execute(
+            select(Conversation)
+            .where(Conversation.status == "deleted")
+            .order_by(Conversation.updated_at)
+            .limit(batch_size)
+        )
+        to_delete = result.scalars().all()
+
+        for conv in to_delete:
+            # Delete associated messages first (no cascade on FK)
+            await self.session.execute(
+                delete(Message).where(Message.conversation_id == conv.id)
+            )
+            # Then delete conversation
+            await self.session.delete(conv)
+
+        await self.session.commit()
+        print(f"Cleaned up {len(to_delete)} soft-deleted conversations")
