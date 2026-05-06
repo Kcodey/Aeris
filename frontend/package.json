@@ -15,10 +15,12 @@
     "antd": "^5.14.0",
     "axios": "^1.6.7",
     "dayjs": "^1.11.10",
+    "lucide-react": "^1.14.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^6.22.0"
+    "react-router-dom": "^6.22.0",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@types/react": "^18.2.55",
@@ -26,9 +28,12 @@
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.5.0",
     "eslint": "^8.56.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^3.4.19",
     "typescript": "^5.3.3",
     "vite": "^5.1.0"
   }
