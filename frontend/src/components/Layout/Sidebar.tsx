@@ -80,8 +80,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNav(item.key)}
               className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 relative ${
                 isActive
-                  ? 'bg-brand-light text-content-primary font-semibold'
-                  : 'text-content-secondary hover:bg-surface-page'
+                  ? 'bg-brand-light text-content-primary font-semibold shadow-sm -translate-y-px'
+                  : 'text-content-secondary hover:bg-[#fef3c7]'
               }`}
             >
               <Icon size={16} />
@@ -103,8 +103,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelect(conv.id)}
               className={`text-left px-2 py-1.5 rounded-md transition-all duration-150 truncate relative ${
                 selectedConversationId === conv.id
-                  ? 'bg-brand-light text-content-primary font-medium'
-                  : 'text-content-tertiary hover:bg-surface-page hover:text-content-secondary'
+                  ? 'bg-brand-light text-content-primary font-medium shadow-sm -translate-y-px'
+                  : 'text-content-tertiary hover:bg-[#fef3c7] hover:text-content-secondary'
               }`}
             >
               <div className="truncate text-xs">{conv.title || '未命名对话'}</div>
