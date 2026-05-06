@@ -78,9 +78,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={item.key}
               onClick={() => handleNav(item.key)}
-              className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 ${
+              className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 relative ${
                 isActive
-                  ? 'bg-brand-light text-content-primary font-semibold'
+                  ? 'bg-[#fef3c7]/70 text-brand-dark font-semibold shadow-sm ring-1 ring-inset ring-brand/20'
                   : 'text-content-secondary hover:bg-surface-page'
               }`}
             >
@@ -101,9 +101,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               key={conv.id}
               onClick={() => handleSelect(conv.id)}
-              className={`text-left px-2 py-1.5 rounded-md transition-all duration-150 truncate ${
+              className={`text-left px-2 py-1.5 rounded-md transition-all duration-150 truncate relative ${
                 selectedConversationId === conv.id
-                  ? 'bg-brand-light text-content-primary font-medium'
+                  ? 'bg-[#fef3c7]/70 text-brand-dark font-semibold shadow-sm ring-1 ring-inset ring-brand/15'
                   : 'text-content-tertiary hover:bg-surface-page hover:text-content-secondary'
               }`}
             >
