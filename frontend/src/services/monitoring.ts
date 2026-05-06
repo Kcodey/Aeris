@@ -2,11 +2,11 @@ import api from './api'
 import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
 
 export const monitoringApi = {
-  getDashboard: (days?: number) =>
-    api.get<DashboardStats>('/monitoring/dashboard', { params: { days } }),
+  getDashboard: (hours?: number) =>
+    api.get<DashboardStats>('/monitoring/dashboard', { params: { hours } }),
 
-  getModelUsage: (days?: number) =>
-    api.get<ModelUsage[]>('/monitoring/model-usage', { params: { days } }),
+  getModelUsage: (hours?: number) =>
+    api.get<ModelUsage[]>('/monitoring/model-usage', { params: { hours } }),
 
   getTraces: (params?: { skip?: number; limit?: number }) =>
     api.get<LLMTrace[]>('/monitoring/traces', { params }),
@@ -14,6 +14,6 @@ export const monitoringApi = {
   getTraceDetail: (traceId: string) =>
     api.get<LLMTrace>(`/monitoring/traces/${traceId}`),
 
-  getDailyStats: (days?: number) =>
-    api.get<{ period_days: number; daily_tokens: { date: string; tokens: number }[]; latency_distribution: { range: string; count: number }[] }>('/monitoring/daily-stats', { params: { days } }),
+  getDailyStats: (hours?: number) =>
+    api.get<{ period_hours: number; daily_tokens: { date: string; tokens: number }[]; latency_distribution: { range: string; count: number }[] }>('/monitoring/daily-stats', { params: { hours } }),
 }

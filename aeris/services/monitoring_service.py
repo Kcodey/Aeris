@@ -15,9 +15,9 @@ class MonitoringService:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_dashboard_stats(self, days: int = 7) -> Dict[str, Any]:
+    async def get_dashboard_stats(self, hours: int = 168) -> Dict[str, Any]:
         """Get dashboard statistics."""
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.utcnow() - timedelta(hours=hours)
 
         # Message counts
         message_result = await self.session.execute(
@@ -53,7 +53,7 @@ class MonitoringService:
         avg_latency = latency_result.scalar() or 0
 
         return {
-            "period_days": days,
+            "period_hours": hours,
             "total_messages": total_messages,
             "total_conversations": total_conversations,
             "input_tokens": int(input_tokens),
@@ -94,9 +94,9 @@ class MonitoringService:
         )
         return result.scalar_one_or_none()
 
-    async def get_model_usage(self, days: int = 7) -> List[Dict[str, Any]]:
+    async def get_model_usage(self, hours: int = 168) -> List[Dict[str, Any]]:
         """Get usage by model."""
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.utcnow() - timedelta(hours=hours)
 
         result = await self.session.execute(
             select(
@@ -124,10 +124,10 @@ class MonitoringService:
             for row in result.all()
         ]
 
-    async def get_daily_stats(self, days: int = 7) -> Dict[str, Any]:
+    async def get_daily_stats(self, hours: int = 168) -> Dict[str, Any]:
         """Get daily token usage and latency distribution."""
         from sqlalchemy import Date, cast
-        since = datetime.utcnow() - timedelta(days=days)
+        since = datetime.utcnow() - timedelta(hours=hours)
 
         # Daily token usage aggregated from LLMTrace
         daily_result = await self.session.execute(
@@ -173,7 +173,7 @@ class MonitoringService:
             })
 
         return {
-            "period_days": days,
+            "period_hours": hours,
             "daily_tokens": daily_tokens,
             "latency_distribution": latency_distribution,
         }

@@ -20,7 +20,7 @@ import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
 const PAGE_SIZE = 20
 
 const MonitoringPage: React.FC = () => {
-  const [days, setDays] = useState(7)
+  const [hours, setHours] = useState(168)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [modelUsage, setModelUsage] = useState<ModelUsage[]>([])
   const [loading, setLoading] = useState(false)
@@ -41,8 +41,8 @@ const MonitoringPage: React.FC = () => {
     setLoading(true)
     try {
       const [statsRes, usageRes] = await Promise.all([
-        monitoringApi.getDashboard(days),
-        monitoringApi.getModelUsage(days),
+        monitoringApi.getDashboard(hours),
+        monitoringApi.getModelUsage(hours),
       ])
       setStats(statsRes.data)
       setModelUsage(usageRes.data)
@@ -55,7 +55,7 @@ const MonitoringPage: React.FC = () => {
 
   const loadDailyStats = async () => {
     try {
-      const res = await monitoringApi.getDailyStats(days)
+      const res = await monitoringApi.getDailyStats(hours)
       setDailyTokens(res.data.daily_tokens)
       setLatencyData(res.data.latency_distribution)
     } catch (error) {
@@ -84,7 +84,7 @@ const MonitoringPage: React.FC = () => {
   useEffect(() => {
     loadData()
     loadDailyStats()
-  }, [days])
+  }, [hours])
 
   useEffect(() => {
     loadTraces(tracePage)
@@ -204,13 +204,15 @@ const MonitoringPage: React.FC = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-title text-content-primary">监控仪表板</h1>
         <Select
-          value={days}
-          onChange={setDays}
-          style={{ width: 120 }}
+          value={hours}
+          onChange={setHours}
+          style={{ width: 130 }}
           options={[
-            { value: 7, label: '最近7天' },
-            { value: 14, label: '最近14天' },
-            { value: 30, label: '最近30天' },
+            { value: 1, label: '最近1小时' },
+            { value: 24, label: '最近24小时' },
+            { value: 168, label: '最近7天' },
+            { value: 336, label: '最近14天' },
+            { value: 720, label: '最近30天' },
           ]}
         />
       </div>

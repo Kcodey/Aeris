@@ -19,12 +19,12 @@ async def get_monitoring_service(
 
 @router.get("/dashboard")
 async def get_dashboard(
-    days: int = Query(default=7, ge=1, le=30),
+    hours: int = Query(default=168, ge=1, le=720),
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     service: Annotated[MonitoringService, Depends(get_monitoring_service)] = None,
 ):
     """Get dashboard statistics."""
-    return await service.get_dashboard_stats(days)
+    return await service.get_dashboard_stats(hours)
 
 
 @router.get("/traces")
@@ -64,19 +64,19 @@ async def get_trace_detail(
 
 @router.get("/model-usage")
 async def get_model_usage(
-    days: int = Query(default=7, ge=1, le=30),
+    hours: int = Query(default=168, ge=1, le=720),
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     service: Annotated[MonitoringService, Depends(get_monitoring_service)] = None,
 ):
     """Get model usage statistics."""
-    return await service.get_model_usage(days)
+    return await service.get_model_usage(hours)
 
 
 @router.get("/daily-stats")
 async def get_daily_stats(
-    days: int = Query(default=7, ge=1, le=30),
+    hours: int = Query(default=168, ge=1, le=720),
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     service: Annotated[MonitoringService, Depends(get_monitoring_service)] = None,
 ):
     """Get daily token usage and latency distribution."""
-    return await service.get_daily_stats(days)
+    return await service.get_daily_stats(hours)
