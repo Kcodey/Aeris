@@ -24,9 +24,11 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children, onLogout }) => {
     { key: '/monitoring', icon: <DashboardOutlined />, label: '监控' },
   ]
 
-  const selectedKey = menuItems.find((item) =>
-    location.pathname.startsWith(item.key)
-  )?.key || '/'
+  const selectedKey =
+    menuItems
+      .slice()
+      .sort((a, b) => b.key.length - a.key.length)
+      .find((item) => location.pathname.startsWith(item.key))?.key || '/'
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
