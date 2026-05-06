@@ -78,7 +78,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
-      <main className="flex-1 m-0 md:m-4 bg-surface-card md:rounded-xl shadow-subtle overflow-hidden">
+      <main className="flex-1 m-0 md:m-4 md:rounded-xl overflow-hidden">
         <Routes>
           <Route path="/" element={<ChatPage selectedConversationId={selectedConversationId} />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
