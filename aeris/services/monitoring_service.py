@@ -151,11 +151,11 @@ class MonitoringService:
 
         # Latency distribution from LLMTrace
         latency_ranges = [
-            (0, 200, "0-200ms"),
-            (200, 500, "200-500ms"),
-            (500, 1000, "500-1s"),
-            (1000, 2000, "1-2s"),
-            (2000, None, ">2s"),
+            (0, 2000, "0-2s"),
+            (2000, 3000, "2s-3s"),
+            (3000, 5000, "3s-5s"),
+            (5000, 10000, "5-10s"),
+            (10000, None, "10s以上"),
         ]
 
         latency_distribution = []
