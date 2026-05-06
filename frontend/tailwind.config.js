@@ -24,6 +24,7 @@ export default {
         border: {
           DEFAULT: '#e7e5e4',
         },
+        error: '#ef4444',
         chart: {
           amber: '#d97706',
           gold: '#fbbf24',
