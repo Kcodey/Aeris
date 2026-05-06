@@ -123,6 +123,7 @@ class ChatService:
             user_id=user_id,
             conversation_id=conversation_id,
             message_id=user_message.id,
+            session=self.session,
         )
 
         result = await self.agent_engine.run(llm_messages, context)

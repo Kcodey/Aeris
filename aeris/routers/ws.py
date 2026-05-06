@@ -223,6 +223,7 @@ async def chat_websocket(websocket: WebSocket):
                             user_id=user["user_id"],
                             conversation_id=conversation_id,
                             message_id=user_message.id,
+                            session=session,
                         )
 
                         agent_engine = get_agent_engine()
