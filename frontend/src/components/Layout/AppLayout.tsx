@@ -1,96 +1,72 @@
-import React, { useState } from 'react'
-import { Layout, Menu } from 'antd'
-import {
-  MessageOutlined,
-  DashboardOutlined,
-  LogoutOutlined,
-} from '@ant-design/icons'
-import { useNavigate, useLocation } from 'react-router-dom'
-
-const { Sider, Content } = Layout
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { Sidebar } from './Sidebar'
+import ChatPage from '../../pages/ChatPage'
+import MonitoringPage from '../../pages/MonitoringPage'
+import { chatApi } from '../../services/chat'
+import { Conversation } from '../../types/chat'
 
 interface AppLayoutProps {
-  children: React.ReactNode
   onLogout: () => void
 }
 
-const AppLayout: React.FC<AppLayoutProps> = ({ children, onLogout }) => {
-  const [collapsed, setCollapsed] = useState(false)
+const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null)
 
-  const menuItems = [
-    { key: '/', icon: <MessageOutlined />, label: '对话' },
-    { key: '/monitoring', icon: <DashboardOutlined />, label: '监控' },
-  ]
+  useEffect(() => {
+    loadConversations()
+  }, [])
 
-  const selectedKey =
-    menuItems
-      .slice()
-      .sort((a, b) => b.key.length - a.key.length)
-      .find((item) => location.pathname.startsWith(item.key))?.key || '/'
+  const loadConversations = async () => {
+    try {
+      const response = await chatApi.getConversations()
+      setConversations(response.data)
+    } catch (error) {
+      console.error('Failed to load conversations:', error)
+    }
+  }
+
+  const handleNavigate = (route: string) => {
+    navigate(route)
+  }
+
+  const handleSelectConversation = (id: number) => {
+    setSelectedConversationId(id)
+    navigate('/')
+  }
+
+  const handleCreateConversation = async () => {
+    try {
+      const response = await chatApi.createConversation()
+      setConversations((prev) => [response.data, ...prev])
+      setSelectedConversationId(response.data.id)
+      navigate('/')
+    } catch (error) {
+      console.error('Failed to create conversation:', error)
+    }
+  }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="light"
-        style={{
-          boxShadow: '2px 0 8px rgba(0,0,0,0.05)',
-        }}
-      >
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: collapsed ? 14 : 20,
-            fontWeight: 'bold',
-            color: '#1677ff',
-          }}
-        >
-          {collapsed ? 'A' : 'Aeris'}
-        </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[selectedKey]}
-          items={menuItems.map((item) => ({
-            key: item.key,
-            icon: item.icon,
-            label: item.label,
-            onClick: () => navigate(item.key),
-          }))}
-        />
-        <Menu
-          mode="inline"
-          style={{ marginTop: 'auto' }}
-          items={[
-            {
-              key: 'logout',
-              icon: <LogoutOutlined />,
-              label: '退出',
-              onClick: onLogout,
-            },
-          ]}
-        />
-      </Sider>
-      <Layout>
-        <Content
-          style={{
-            margin: 16,
-            background: '#fff',
-            borderRadius: 8,
-            height: 'calc(100vh - 32px)',
-            overflow: 'hidden',
-          }}
-        >
-          {children}
-        </Content>
-      </Layout>
-    </Layout>
+    <div className="h-screen w-screen flex bg-surface-page overflow-hidden">
+      <Sidebar
+        activeRoute={location.pathname}
+        conversations={conversations}
+        selectedConversationId={selectedConversationId}
+        onNavigate={handleNavigate}
+        onSelectConversation={handleSelectConversation}
+        onCreateConversation={handleCreateConversation}
+        onLogout={onLogout}
+      />
+      <main className="flex-1 m-4 bg-surface-card rounded-xl shadow-subtle overflow-hidden">
+        <Routes>
+          <Route path="/" element={<ChatPage selectedConversationId={selectedConversationId} />} />
+          <Route path="/monitoring" element={<MonitoringPage />} />
+        </Routes>
+      </main>
+    </div>
   )
 }
 
