@@ -27,7 +27,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         {suffix && <span className="text-lg font-normal text-content-secondary ml-1">{suffix}</span>}
       </div>
       {trend && (
-        <div className={`text-label mt-2 ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+        <div className={`text-label mt-2 ${trend.isPositive ? 'text-red-600' : 'text-green-600'}`}>
           {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}% {trend.label}
         </div>
       )}
