@@ -1,155 +1,189 @@
 import { useState } from 'react'
-import { Form, Input, Button, Card, Typography, Tabs, message } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { authApi } from '../services/auth'
 import { setToken } from '../utils/token'
 import { LoginRequest, RegisterRequest } from '../types/auth'
-
-const { Title } = Typography
 
 interface LoginProps {
   onLogin: () => void
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin }) => {
-  const [activeTab, setActiveTab] = useState('login')
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>('login')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const navigate = useNavigate()
 
-  const handleLogin = async (values: LoginRequest) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const values: LoginRequest = {
+      username: formData.get('username') as string,
+      password: formData.get('password') as string,
+    }
+
     setLoading(true)
+    setError('')
     try {
       const response = await authApi.login(values)
       setToken(response.data.access_token)
-      message.success('登录成功')
       onLogin()
       navigate('/')
-    } catch (error) {
-      // Error handled by interceptor
+    } catch (err: any) {
+      setError(err.response?.data?.detail || '登录失败')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegister = async (values: RegisterRequest) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+
+    if (password !== confirmPassword) {
+      setError('两次输入的密码不一致')
+      return
+    }
+
+    const values: RegisterRequest = {
+      username: formData.get('username') as string,
+      password,
+    }
+
     setLoading(true)
+    setError('')
     try {
       await authApi.register(values)
-      message.success('注册成功，请登录')
       setActiveTab('login')
-    } catch (error) {
-      // Error handled by interceptor
+      setError('')
+    } catch (err: any) {
+      setError(err.response?.data?.detail || '注册失败')
     } finally {
       setLoading(false)
     }
   }
 
-  const loginForm = (
-    <Form
-      name="login"
-      onFinish={handleLogin}
-      autoComplete="off"
-      size="large"
-    >
-      <Form.Item
-        name="username"
-        rules={[{ required: true, message: '请输入用户名' }]}
-      >
-        <Input prefix={<UserOutlined />} placeholder="用户名" />
-      </Form.Item>
-
-      <Form.Item
-        name="password"
-        rules={[{ required: true, message: '请输入密码' }]}
-      >
-        <Input.Password prefix={<LockOutlined />} placeholder="密码" />
-      </Form.Item>
-
-      <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          登录
-        </Button>
-      </Form.Item>
-    </Form>
-  )
-
-  const registerForm = (
-    <Form
-      name="register"
-      onFinish={handleRegister}
-      autoComplete="off"
-      size="large"
-    >
-      <Form.Item
-        name="username"
-        rules={[{ required: true, message: '请输入用户名' }]}
-      >
-        <Input prefix={<UserOutlined />} placeholder="用户名" />
-      </Form.Item>
-
-      <Form.Item
-        name="password"
-        rules={[
-          { required: true, message: '请输入密码' },
-          { min: 6, message: '密码至少6位' },
-        ]}
-      >
-        <Input.Password prefix={<LockOutlined />} placeholder="密码" />
-      </Form.Item>
-
-      <Form.Item
-        name="confirmPassword"
-        dependencies={['password']}
-        rules={[
-          { required: true, message: '请确认密码' },
-          ({ getFieldValue }) => ({
-            validator(_, value) {
-              if (!value || getFieldValue('password') === value) {
-                return Promise.resolve()
-              }
-              return Promise.reject(new Error('两次输入的密码不一致'))
-            },
-          }),
-        ]}
-      >
-        <Input.Password prefix={<LockOutlined />} placeholder="确认密码" />
-      </Form.Item>
-
-      <Form.Item>
-        <Button type="primary" htmlType="submit" loading={loading} block>
-          注册
-        </Button>
-      </Form.Item>
-    </Form>
-  )
-
   return (
-    <div
-      style={{
-        height: '100vh',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        background: '#f0f2f5',
-      }}
-    >
-      <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <Title level={2}>Aeris</Title>
-          <Typography.Text type="secondary">AI Agent Platform</Typography.Text>
+    <div className="min-h-screen w-full flex items-center justify-center bg-surface-page relative overflow-hidden">
+      {/* Ambient glow background */}
+      <div className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.2)_0%,transparent_70%)] animate-float" />
+      <div
+        className="absolute -bottom-16 -right-16 w-[350px] h-[350px] rounded-full bg-[radial-gradient(circle,rgba(217,119,6,0.12)_0%,transparent_70%)] animate-float"
+        style={{ animationDelay: '-10s' }}
+      />
+
+      {/* Glass card */}
+      <div
+        className="relative z-10 w-[360px] max-w-[90vw] bg-white/85 border border-white/60 rounded-2xl shadow-floating p-8"
+        style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)' }}
+      >
+        {/* Brand */}
+        <div className="flex flex-col items-center mb-6">
+          <div className="w-12 h-12 bg-brand rounded-[14px] flex items-center justify-center text-white text-xl font-bold mb-3 shadow-glow">
+            A
+          </div>
+          <h1 className="text-xl font-bold text-content-primary">Aeris</h1>
+          <p className="text-caption text-content-secondary mt-1">AI Agent Platform</p>
         </div>
 
-        <Tabs
-          activeKey={activeTab}
-          onChange={setActiveTab}
-          centered
-          items={[
-            { key: 'login', label: '登录', children: loginForm },
-            { key: 'register', label: '注册', children: registerForm },
-          ]}
-        />
-      </Card>
+        {/* Tab switch */}
+        <div className="flex gap-1 bg-surface-page rounded-lg p-1 mb-6">
+          <button
+            onClick={() => {
+              setActiveTab('login')
+              setError('')
+            }}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              activeTab === 'login'
+                ? 'bg-brand-light text-amber-800 font-semibold'
+                : 'text-content-secondary hover:text-content-primary'
+            }`}
+          >
+            登录
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('register')
+              setError('')
+            }}
+            className={`flex-1 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+              activeTab === 'register'
+                ? 'bg-brand-light text-amber-800 font-semibold'
+                : 'text-content-secondary hover:text-content-primary'
+            }`}
+          >
+            注册
+          </button>
+        </div>
+
+        {/* Error message */}
+        {error && (
+          <div className="mb-4 px-3 py-2 bg-red-50 border border-red-100 rounded-md text-xs text-red-700">
+            {error}
+          </div>
+        )}
+
+        {/* Forms */}
+        {activeTab === 'login' ? (
+          <form onSubmit={handleLogin} className="flex flex-col gap-3">
+            <input
+              name="username"
+              type="text"
+              required
+              placeholder="用户名"
+              className="w-full h-11 px-4 bg-surface-page border border-border rounded-md text-body text-content-primary placeholder-content-tertiary transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+            />
+            <input
+              name="password"
+              type="password"
+              required
+              placeholder="密码"
+              className="w-full h-11 px-4 bg-surface-page border border-border rounded-md text-body text-content-primary placeholder-content-tertiary transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 mt-2 bg-brand text-white rounded-md text-sm font-medium shadow-glow transition-all duration-200 hover:bg-brand-dark hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(217,119,6,0.35)] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? '登录中...' : '登录'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className="flex flex-col gap-3">
+            <input
+              name="username"
+              type="text"
+              required
+              placeholder="用户名"
+              className="w-full h-11 px-4 bg-surface-page border border-border rounded-md text-body text-content-primary placeholder-content-tertiary transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+            />
+            <input
+              name="password"
+              type="password"
+              required
+              minLength={6}
+              placeholder="密码（至少6位）"
+              className="w-full h-11 px-4 bg-surface-page border border-border rounded-md text-body text-content-primary placeholder-content-tertiary transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+            />
+            <input
+              name="confirmPassword"
+              type="password"
+              required
+              placeholder="确认密码"
+              className="w-full h-11 px-4 bg-surface-page border border-border rounded-md text-body text-content-primary placeholder-content-tertiary transition-all duration-200 focus:border-brand focus:ring-2 focus:ring-brand/15 focus:outline-none"
+            />
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 mt-2 bg-brand text-white rounded-md text-sm font-medium shadow-glow transition-all duration-200 hover:bg-brand-dark hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(217,119,6,0.35)] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? '注册中...' : '注册'}
+            </button>
+          </form>
+        )}
+      </div>
     </div>
   )
 }
