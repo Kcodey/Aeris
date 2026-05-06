@@ -9,7 +9,7 @@ import {
   Descriptions,
   Collapse,
 } from 'antd'
-import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { AlertCircle } from 'lucide-react'
 import { StatCard } from '../components/Monitoring/StatCard'
 import { TokenTrendChart } from '../components/Monitoring/TokenTrendChart'
 import { ModelPieChart } from '../components/Monitoring/ModelPieChart'
@@ -150,7 +150,7 @@ const MonitoringPage: React.FC = () => {
       key: 'error_type',
       render: (v: string | undefined) =>
         v ? (
-          <Tag color="red" icon={<ExclamationCircleOutlined />}>
+          <Tag color="red" icon={<AlertCircle size={14} />}>
             {v}
           </Tag>
         ) : (
@@ -361,7 +361,7 @@ const MonitoringPage: React.FC = () => {
 
               {selectedTrace.error_type && (
                 <div style={{ marginTop: 16 }}>
-                  <Tag color="red" icon={<ExclamationCircleOutlined />}>
+                  <Tag color="red" icon={<AlertCircle size={14} />}>
                     {selectedTrace.error_type}
                   </Tag>
                   {selectedTrace.error_message && (
