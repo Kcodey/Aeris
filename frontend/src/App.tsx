@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { message } from 'antd'
 import Login from './pages/Login'
 import ChatPage from './pages/ChatPage'
-import TasksPage from './pages/TasksPage'
 import MonitoringPage from './pages/MonitoringPage'
 import AppLayout from './components/Layout/AppLayout'
 import { getToken, removeToken } from './utils/token'
@@ -48,7 +47,6 @@ function App() {
               <AppLayout onLogout={handleLogout}>
                 <Routes>
                   <Route path="/" element={<ChatPage />} />
-                  <Route path="/tasks" element={<TasksPage />} />
                   <Route path="/monitoring" element={<MonitoringPage />} />
                 </Routes>
               </AppLayout>
