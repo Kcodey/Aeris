@@ -46,8 +46,22 @@ body {
   color: #57534e;
 }
 
+.ant-table-row {
+  transition: background-color 0.15s ease;
+}
+
 .ant-table-row:hover > td {
-  background: #fafaf9 !important;
+  background: #fef3c7 !important;
+}
+
+.ant-select-item-option-selected {
+  background-color: #fffbeb !important;
+  color: #b45309 !important;
+  font-weight: 600 !important;
+}
+
+.ant-select-item-option-active {
+  background-color: #fef3c7 !important;
 }
 
 .ant-modal-content {
