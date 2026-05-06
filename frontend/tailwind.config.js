@@ -41,7 +41,7 @@ export default {
       },
       boxShadow: {
         'subtle': '0 1px 3px rgba(0,0,0,0.04)',
-        'elevated': '0 4px 16px rgba(0,0,0,0.06)',
+        'elevated': '0 6px 24px rgba(0,0,0,0.08)',
         'floating': '0 12px 40px rgba(0,0,0,0.08)',
         'glow': '0 2px 12px rgba(217,119,6,0.3)',
       },
