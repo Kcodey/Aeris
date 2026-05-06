@@ -28,7 +28,7 @@ export const ModelPieChart: React.FC<ModelPieChartProps> = ({ data }) => {
             dataKey="value"
             stroke="none"
           >
-            {data.map((entry, index) => (
+            {data.map((_entry, index) => (
               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>

@@ -1,26 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Row,
-  Col,
-  Card,
-  Statistic,
   Table,
   Select,
   Spin,
-  message,
   Modal,
   Pagination,
   Tag,
   Descriptions,
   Collapse,
 } from 'antd'
-import {
-  MessageOutlined,
-  RobotOutlined,
-  ThunderboltOutlined,
-  ClockCircleOutlined,
-  ExclamationCircleOutlined,
-} from '@ant-design/icons'
+import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { StatCard } from '../components/Monitoring/StatCard'
+import { TokenTrendChart } from '../components/Monitoring/TokenTrendChart'
+import { ModelPieChart } from '../components/Monitoring/ModelPieChart'
+import { LatencyBarChart } from '../components/Monitoring/LatencyBarChart'
 import { monitoringApi } from '../services/monitoring'
 import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
 
@@ -41,6 +34,34 @@ const MonitoringPage: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
 
+  // Demo data for charts - replace with real API data
+  const [tokenTrendData] = useState([
+    { date: '4/28', tokens: 45000 },
+    { date: '4/29', tokens: 62000 },
+    { date: '4/30', tokens: 58000 },
+    { date: '5/1', tokens: 81000 },
+    { date: '5/2', tokens: 75000 },
+    { date: '5/3', tokens: 92000 },
+    { date: '5/4', tokens: 88000 },
+    { date: '5/5', tokens: 105000 },
+    { date: '5/6', tokens: 98000 },
+  ])
+
+  const [modelPieData] = useState([
+    { name: 'Qwen2.5-72B', value: 60 },
+    { name: 'GPT-4o', value: 20 },
+    { name: 'Claude-3', value: 12 },
+    { name: '其他', value: 8 },
+  ])
+
+  const [latencyData] = useState([
+    { range: '0-200ms', count: 45 },
+    { range: '200-500ms', count: 32 },
+    { range: '500-1s', count: 18 },
+    { range: '1-2s', count: 8 },
+    { range: '>2s', count: 3 },
+  ])
+
   const loadData = async () => {
     setLoading(true)
     try {
@@ -51,7 +72,7 @@ const MonitoringPage: React.FC = () => {
       setStats(statsRes.data)
       setModelUsage(usageRes.data)
     } catch (error) {
-      message.error('加载监控数据失败')
+      console.error('Failed to load monitoring data:', error)
     } finally {
       setLoading(false)
     }
@@ -69,7 +90,7 @@ const MonitoringPage: React.FC = () => {
         setTraceTotal(skip + PAGE_SIZE + 1)
       }
     } catch (error) {
-      message.error('加载 Trace 列表失败')
+      console.error('Failed to load traces:', error)
     } finally {
       setTraceLoading(false)
     }
@@ -90,7 +111,7 @@ const MonitoringPage: React.FC = () => {
       const res = await monitoringApi.getTraceDetail(trace.trace_id)
       setSelectedTrace(res.data)
     } catch (error) {
-      message.error('加载 Trace 详情失败')
+      console.error('Failed to load trace detail:', error)
       setModalVisible(false)
     } finally {
       setModalLoading(false)
@@ -192,74 +213,79 @@ const MonitoringPage: React.FC = () => {
   ]
 
   return (
-    <div style={{ padding: 24 }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 24,
-        }}
-      >
-        <h2 style={{ margin: 0 }}>监控仪表板</h2>
-        <Select value={days} onChange={setDays} style={{ width: 120 }}>
-          <Select.Option value={7}>最近7天</Select.Option>
-          <Select.Option value={14}>最近14天</Select.Option>
-          <Select.Option value={30}>最近30天</Select.Option>
-        </Select>
+    <div className="h-full overflow-auto p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-title text-content-primary">监控仪表板</h1>
+        <Select
+          value={days}
+          onChange={setDays}
+          style={{ width: 120 }}
+          options={[
+            { value: 7, label: '最近7天' },
+            { value: 14, label: '最近14天' },
+            { value: 30, label: '最近30天' },
+          ]}
+        />
       </div>
 
       <Spin spinning={loading}>
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="消息数"
-                value={stats?.total_messages || 0}
-                prefix={<MessageOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="对话数"
-                value={stats?.total_conversations || 0}
-                prefix={<RobotOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Token 用量"
-                value={stats?.total_tokens || 0}
-                prefix={<ThunderboltOutlined />}
-              />
-            </Card>
-          </Col>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="平均延迟"
-                value={stats?.avg_latency_ms || 0}
-                suffix="ms"
-                prefix={<ClockCircleOutlined />}
-              />
-            </Card>
-          </Col>
-        </Row>
+        {/* Stat cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <StatCard
+            label="消息数"
+            value={stats?.total_messages || 0}
+            trend={{ value: 12.5, isPositive: true, label: '较上周' }}
+          />
+          <StatCard
+            label="对话数"
+            value={stats?.total_conversations || 0}
+            trend={{ value: 8.3, isPositive: true, label: '较上周' }}
+          />
+          <StatCard
+            label="Token 用量"
+            value={stats?.total_tokens || 0}
+            suffix=""
+            highlight
+            trend={{ value: 23.1, isPositive: false, label: '较上周' }}
+          />
+          <StatCard
+            label="平均延迟"
+            value={stats?.avg_latency_ms || 0}
+            suffix="ms"
+            trend={{ value: 5.2, isPositive: true, label: '较上周' }}
+          />
+        </div>
 
-        <Card title="模型使用量" style={{ marginTop: 24 }}>
+        {/* Charts row 1 */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="col-span-2">
+            <TokenTrendChart data={tokenTrendData} />
+          </div>
+          <div>
+            <ModelPieChart data={modelPieData} />
+          </div>
+        </div>
+
+        {/* Charts row 2 */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <LatencyBarChart data={latencyData} />
+        </div>
+
+        {/* Model usage table */}
+        <div className="bg-surface-card rounded-2xl border border-[#f0f0f0] shadow-subtle p-5 mb-6">
+          <div className="text-heading font-semibold text-content-primary mb-4">模型使用量</div>
           <Table
             dataSource={modelUsage}
             columns={modelColumns}
             rowKey={(record) => `${record.provider}-${record.model}`}
             pagination={false}
           />
-        </Card>
+        </div>
 
-        <Card title="LLM Traces" style={{ marginTop: 24 }}>
+        {/* Trace table */}
+        <div className="bg-surface-card rounded-2xl border border-[#f0f0f0] shadow-subtle p-5">
+          <div className="text-heading font-semibold text-content-primary mb-4">LLM Traces</div>
           <Spin spinning={traceLoading}>
             <Table
               dataSource={traces}
@@ -271,7 +297,7 @@ const MonitoringPage: React.FC = () => {
                 style: { cursor: 'pointer' },
               })}
             />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <div className="flex justify-end mt-4">
               <Pagination
                 current={tracePage}
                 pageSize={PAGE_SIZE}
@@ -281,7 +307,7 @@ const MonitoringPage: React.FC = () => {
               />
             </div>
           </Spin>
-        </Card>
+        </div>
       </Spin>
 
       <Modal
