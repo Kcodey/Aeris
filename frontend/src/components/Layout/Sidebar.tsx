@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquare, BarChart3, LogOut, Plus } from 'lucide-react'
+import { MessageSquare, BarChart3, LogOut, Plus, X } from 'lucide-react'
 
 interface Conversation {
   id: number
@@ -15,6 +15,8 @@ interface SidebarProps {
   onSelectConversation: (id: number) => void
   onCreateConversation: () => void
   onLogout: () => void
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -25,27 +27,46 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectConversation,
   onCreateConversation,
   onLogout,
+  mobileOpen = false,
+  onMobileClose,
 }) => {
   const navItems = [
     { key: '/', label: '对话', icon: MessageSquare },
     { key: '/monitoring', label: '监控', icon: BarChart3 },
   ]
 
-  return (
-    <aside
-      className="w-60 h-full flex flex-col bg-white/72 border-r border-white/50 shadow-elevated rounded-r-2xl p-4"
-      style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
-    >
+  const handleNav = (route: string) => {
+    onNavigate(route)
+    onMobileClose?.()
+  }
+
+  const handleSelect = (id: number) => {
+    onSelectConversation(id)
+    onMobileClose?.()
+  }
+
+  const sidebarContent = (
+    <>
       {/* Brand */}
       <div className="px-2 mb-4 flex items-center justify-between">
         <span className="text-sm font-bold text-brand">Aeris</span>
-        <button
-          onClick={onCreateConversation}
-          className="w-7 h-7 rounded-lg bg-brand-light flex items-center justify-center text-brand hover:bg-brand/10 transition-colors"
-          title="新建对话"
-        >
-          <Plus size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={onCreateConversation}
+            className="w-7 h-7 rounded-lg bg-brand-light flex items-center justify-center text-brand hover:bg-brand/10 transition-colors"
+            title="新建对话"
+          >
+            <Plus size={16} />
+          </button>
+          {mobileOpen && onMobileClose && (
+            <button
+              onClick={onMobileClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-content-secondary hover:bg-surface-page transition-colors md:hidden"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation */}
@@ -56,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <button
               key={item.key}
-              onClick={() => onNavigate(item.key)}
+              onClick={() => handleNav(item.key)}
               className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 ${
                 isActive
                   ? 'bg-brand-light text-content-primary font-semibold'
@@ -79,7 +100,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {conversations.map((conv) => (
             <button
               key={conv.id}
-              onClick={() => onSelectConversation(conv.id)}
+              onClick={() => handleSelect(conv.id)}
               className={`text-left px-2 py-1.5 rounded-md transition-all duration-150 truncate ${
                 selectedConversationId === conv.id
                   ? 'bg-brand-light text-content-primary font-medium'
@@ -99,12 +120,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Logout */}
       <button
-        onClick={onLogout}
+        onClick={() => {
+          onLogout()
+          onMobileClose?.()
+        }}
         className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs text-content-secondary hover:bg-surface-page transition-all duration-150 mt-2"
       >
         <LogOut size={16} />
         退出
       </button>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden md:flex w-60 h-full flex-col bg-white/72 border-r border-white/50 shadow-elevated rounded-r-2xl p-4"
+        style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/30 z-40 md:hidden"
+            onClick={onMobileClose}
+          />
+          {/* Drawer */}
+          <aside
+            className="fixed left-0 top-0 h-full w-60 flex flex-col bg-white/90 border-r border-white/50 shadow-floating p-4 z-50 md:hidden"
+            style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+          >
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+    </>
   )
 }

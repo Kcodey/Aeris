@@ -231,7 +231,7 @@ const MonitoringPage: React.FC = () => {
 
       <Spin spinning={loading}>
         {/* Stat cards */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard
             label="消息数"
             value={stats?.total_messages || 0}
@@ -258,8 +258,8 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* Charts row 1 */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <div className="lg:col-span-2">
             <TokenTrendChart data={tokenTrendData} />
           </div>
           <div>
@@ -268,7 +268,7 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* Charts row 2 */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
           <LatencyBarChart data={latencyData} />
         </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
+import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import ChatPage from '../../pages/ChatPage'
 import MonitoringPage from '../../pages/MonitoringPage'
@@ -15,6 +16,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
   const location = useLocation()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversationId, setSelectedConversationId] = useState<number | null>(null)
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   useEffect(() => {
     loadConversations()
@@ -50,7 +52,21 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
   }
 
   return (
-    <div className="h-screen w-screen flex bg-surface-page overflow-hidden">
+    <div className="h-screen w-screen flex flex-col md:flex-row bg-surface-page overflow-hidden">
+      {/* Mobile header */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white/72 border-b border-white/50"
+        style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
+      >
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-content-secondary hover:bg-surface-page transition-colors"
+        >
+          <Menu size={20} />
+        </button>
+        <span className="text-sm font-bold text-brand">Aeris</span>
+        <div className="w-9" />
+      </div>
+
       <Sidebar
         activeRoute={location.pathname}
         conversations={conversations}
@@ -59,8 +75,10 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         onSelectConversation={handleSelectConversation}
         onCreateConversation={handleCreateConversation}
         onLogout={onLogout}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
       />
-      <main className="flex-1 m-4 bg-surface-card rounded-xl shadow-subtle overflow-hidden">
+      <main className="flex-1 m-0 md:m-4 bg-surface-card md:rounded-xl shadow-subtle overflow-hidden">
         <Routes>
           <Route path="/" element={<ChatPage selectedConversationId={selectedConversationId} />} />
           <Route path="/monitoring" element={<MonitoringPage />} />
