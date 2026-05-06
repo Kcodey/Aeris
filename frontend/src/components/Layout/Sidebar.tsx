@@ -80,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleNav(item.key)}
               className={`flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-150 relative ${
                 isActive
-                  ? 'bg-[#fef3c7] text-brand-dark font-semibold shadow-[inset_2px_0_0_#d97706]'
+                  ? 'bg-brand-light text-content-primary font-semibold'
                   : 'text-content-secondary hover:bg-surface-page'
               }`}
             >
@@ -103,7 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => handleSelect(conv.id)}
               className={`text-left px-2 py-1.5 rounded-md transition-all duration-150 truncate relative ${
                 selectedConversationId === conv.id
-                  ? 'bg-[#fef3c7] text-brand-dark font-semibold shadow-[inset_2px_0_0_#d97706]'
+                  ? 'bg-brand-light text-content-primary font-medium'
                   : 'text-content-tertiary hover:bg-surface-page hover:text-content-secondary'
               }`}
             >
