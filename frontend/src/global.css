@@ -100,3 +100,27 @@ body {
 .animate-float {
   animation: float 20s infinite linear;
 }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove default textarea outline — handled by focus-ring */
+textarea:focus {
+  outline: none;
+}
+
+/* Accessible focus indicator for buttons */
+button:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
