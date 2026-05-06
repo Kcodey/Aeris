@@ -13,7 +13,7 @@ export default {
           dark: '#b45309',
         },
         surface: {
-          page: '#fafaf9',
+          page: '#f5f5f4',
           card: '#ffffff',
         },
         content: {
