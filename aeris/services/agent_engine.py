@@ -20,6 +20,7 @@ class AgentContext:
     message_id: Optional[int] = None
     provider_name: str = "default"
     max_iterations: int = 10
+    session: Optional[Any] = None
 
     # Tracking
     iteration_count: int = field(default=0)
@@ -59,6 +60,53 @@ class AgentEngine:
         self.tool_registry = get_tool_registry()
         self.tokenizer = get_tokenizer()
 
+    async def _save_trace(
+        self,
+        context: AgentContext,
+        provider: Any,
+        request_payload: Dict[str, Any],
+        response_payload: Dict[str, Any],
+        latency_ms: int,
+        first_token_ms: Optional[int],
+        input_tokens: int,
+        output_tokens: int,
+        error_type: Optional[str] = None,
+        error_message: Optional[str] = None,
+        tool_calls: Optional[List[Dict[str, Any]]] = None,
+        tool_results: Optional[List[Dict[str, Any]]] = None,
+    ):
+        """Save LLM trace to database if session is available."""
+        if not context.session:
+            return
+
+        try:
+            from aeris.models.trace import LLMTrace
+
+            trace = LLMTrace(
+                trace_id=str(uuid.uuid4()),
+                user_id=context.user_id,
+                conversation_id=context.conversation_id,
+                message_id=context.message_id,
+                provider=provider.config.get("type", "unknown"),
+                model=provider.model,
+                request_payload=request_payload,
+                response_payload=response_payload,
+                latency_ms=latency_ms,
+                first_token_ms=first_token_ms,
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                error_type=error_type,
+                error_message=error_message,
+                tool_calls=tool_calls,
+                tool_results=tool_results,
+                iteration_count=context.iteration_count + 1,
+            )
+            context.session.add(trace)
+            await context.session.commit()
+        except Exception:
+            # Silently ignore trace save errors to not break the main flow
+            pass
+
     async def run(
         self,
         messages: List[Dict[str, Any]],
@@ -91,6 +139,37 @@ class AgentEngine:
 
             # Record usage
             context.record_usage(response.input_tokens, response.output_tokens)
+
+            # Build request/response payload for trace
+            request_payload = {
+                "model": provider.model,
+                "messages": working_messages,
+                "tools": tool_schemas,
+            }
+            response_payload = {
+                "content": response.content,
+                "tool_calls": [
+                    {"id": tc.id, "name": tc.name, "arguments": tc.arguments}
+                    for tc in (response.tool_calls or [])
+                ],
+                "usage": {
+                    "input_tokens": response.input_tokens,
+                    "output_tokens": response.output_tokens,
+                },
+            }
+
+            # Save trace
+            await self._save_trace(
+                context=context,
+                provider=provider,
+                request_payload=request_payload,
+                response_payload=response_payload,
+                latency_ms=response.latency_ms,
+                first_token_ms=response.first_token_ms,
+                input_tokens=response.input_tokens,
+                output_tokens=response.output_tokens,
+                tool_calls=response_payload["tool_calls"] or None,
+            )
 
             # Check for tool calls
             if not response.tool_calls:
@@ -127,12 +206,18 @@ class AgentEngine:
             }
             working_messages.append(assistant_message)
 
+            iteration_tool_results = []
             for tool_call in response.tool_calls:
                 result = await self._execute_tool(tool_call, context)
                 tool_calls_executed.append({
                     "tool": tool_call.name,
                     "arguments": tool_call.arguments,
                     "result": result,
+                })
+                iteration_tool_results.append({
+                    "tool": tool_call.name,
+                    "arguments": tool_call.arguments,
+                    "result": {"success": result.success, "data": result.data, "error": result.error},
                 })
 
                 tool_message = {
@@ -141,6 +226,27 @@ class AgentEngine:
                     "content": json.dumps(result.data) if result.success else result.error,
                 }
                 working_messages.append(tool_message)
+
+            # Update trace with tool results
+            if context.session:
+                try:
+                    from aeris.models.trace import LLMTrace
+                    from sqlmodel import select
+                    stmt = (
+                        select(LLMTrace)
+                        .where(LLMTrace.user_id == context.user_id)
+                        .where(LLMTrace.conversation_id == context.conversation_id)
+                        .where(LLMTrace.message_id == context.message_id)
+                        .order_by(LLMTrace.timestamp.desc())
+                        .limit(1)
+                    )
+                    result = await context.session.execute(stmt)
+                    latest_trace = result.scalar_one_or_none()
+                    if latest_trace:
+                        latest_trace.tool_results = iteration_tool_results
+                        await context.session.commit()
+                except Exception:
+                    pass
 
             context.iteration_count += 1
 
@@ -207,6 +313,11 @@ class AgentEngine:
             full_content = ""
             iteration_tool_calls = []
 
+            stream_latency_ms = 0
+            stream_first_token_ms = None
+            stream_input_tokens = 0
+            stream_output_tokens = 0
+
             async for chunk in provider.chat_completion_stream(
                 messages=working_messages,
                 tools=tool_schemas,
@@ -229,6 +340,40 @@ class AgentEngine:
                         chunk.usage["input_tokens"],
                         chunk.usage["output_tokens"],
                     )
+                    stream_latency_ms = chunk.usage.get("latency_ms", 0)
+                    stream_first_token_ms = chunk.usage.get("first_token_ms")
+                    stream_input_tokens = chunk.usage["input_tokens"]
+                    stream_output_tokens = chunk.usage["output_tokens"]
+
+            # Save trace after stream completes
+            request_payload = {
+                "model": provider.model,
+                "messages": working_messages,
+                "tools": tool_schemas,
+            }
+            response_payload = {
+                "content": full_content,
+                "tool_calls": [
+                    {"id": tc.id, "name": tc.name, "arguments": tc.arguments}
+                    for tc in iteration_tool_calls
+                ],
+                "usage": {
+                    "input_tokens": stream_input_tokens,
+                    "output_tokens": stream_output_tokens,
+                },
+            }
+
+            await self._save_trace(
+                context=context,
+                provider=provider,
+                request_payload=request_payload,
+                response_payload=response_payload,
+                latency_ms=stream_latency_ms,
+                first_token_ms=stream_first_token_ms,
+                input_tokens=stream_input_tokens,
+                output_tokens=stream_output_tokens,
+                tool_calls=response_payload["tool_calls"] or None,
+            )
 
             if not iteration_tool_calls:
                 end_time = time.time()
@@ -262,12 +407,18 @@ class AgentEngine:
             }
             working_messages.append(assistant_message)
 
+            iteration_tool_results = []
             for tool_call in iteration_tool_calls:
                 result = await self._execute_tool(tool_call, context)
                 tool_calls_executed.append({
                     "tool": tool_call.name,
                     "arguments": tool_call.arguments,
                     "result": result,
+                })
+                iteration_tool_results.append({
+                    "tool": tool_call.name,
+                    "arguments": tool_call.arguments,
+                    "result": {"success": result.success, "data": result.data, "error": result.error},
                 })
 
                 tool_message = {
@@ -276,6 +427,27 @@ class AgentEngine:
                     "content": json.dumps(result.data) if result.success else result.error,
                 }
                 working_messages.append(tool_message)
+
+            # Update trace with tool results
+            if context.session:
+                try:
+                    from aeris.models.trace import LLMTrace
+                    from sqlmodel import select
+                    stmt = (
+                        select(LLMTrace)
+                        .where(LLMTrace.user_id == context.user_id)
+                        .where(LLMTrace.conversation_id == context.conversation_id)
+                        .where(LLMTrace.message_id == context.message_id)
+                        .order_by(LLMTrace.timestamp.desc())
+                        .limit(1)
+                    )
+                    result = await context.session.execute(stmt)
+                    latest_trace = result.scalar_one_or_none()
+                    if latest_trace:
+                        latest_trace.tool_results = iteration_tool_results
+                        await context.session.commit()
+                except Exception:
+                    pass
 
             context.iteration_count += 1
 
