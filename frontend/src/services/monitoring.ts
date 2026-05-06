@@ -13,4 +13,7 @@ export const monitoringApi = {
 
   getTraceDetail: (traceId: string) =>
     api.get<LLMTrace>(`/monitoring/traces/${traceId}`),
+
+  getDailyStats: (days?: number) =>
+    api.get<{ period_days: number; daily_tokens: { date: string; tokens: number }[]; latency_distribution: { range: string; count: number }[] }>('/monitoring/daily-stats', { params: { days } }),
 }

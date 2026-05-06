@@ -123,3 +123,57 @@ class MonitoringService:
             }
             for row in result.all()
         ]
+
+    async def get_daily_stats(self, days: int = 7) -> Dict[str, Any]:
+        """Get daily token usage and latency distribution."""
+        from sqlalchemy import Date, cast
+        since = datetime.utcnow() - timedelta(days=days)
+
+        # Daily token usage aggregated from LLMTrace
+        daily_result = await self.session.execute(
+            select(
+                func.date(LLMTrace.timestamp).label("date"),
+                func.sum(LLMTrace.input_tokens).label("input_tokens"),
+                func.sum(LLMTrace.output_tokens).label("output_tokens"),
+            )
+            .where(LLMTrace.timestamp >= since)
+            .group_by(func.date(LLMTrace.timestamp))
+            .order_by(func.date(LLMTrace.timestamp))
+        )
+
+        daily_tokens = [
+            {
+                "date": row[0].strftime("%m/%d") if row[0] else "",
+                "tokens": int((row[1] or 0) + (row[2] or 0)),
+            }
+            for row in daily_result.all()
+        ]
+
+        # Latency distribution from LLMTrace
+        latency_ranges = [
+            (0, 200, "0-200ms"),
+            (200, 500, "200-500ms"),
+            (500, 1000, "500-1s"),
+            (1000, 2000, "1-2s"),
+            (2000, None, ">2s"),
+        ]
+
+        latency_distribution = []
+        for low, high, label in latency_ranges:
+            query = select(func.count(LLMTrace.trace_id)).where(
+                LLMTrace.timestamp >= since,
+                LLMTrace.latency_ms >= low,
+            )
+            if high is not None:
+                query = query.where(LLMTrace.latency_ms < high)
+            count_result = await self.session.execute(query)
+            latency_distribution.append({
+                "range": label,
+                "count": count_result.scalar() or 0,
+            })
+
+        return {
+            "period_days": days,
+            "daily_tokens": daily_tokens,
+            "latency_distribution": latency_distribution,
+        }

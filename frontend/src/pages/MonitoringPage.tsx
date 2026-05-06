@@ -34,33 +34,8 @@ const MonitoringPage: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false)
   const [modalLoading, setModalLoading] = useState(false)
 
-  // Demo data for charts - replace with real API data
-  const [tokenTrendData] = useState([
-    { date: '4/28', tokens: 45000 },
-    { date: '4/29', tokens: 62000 },
-    { date: '4/30', tokens: 58000 },
-    { date: '5/1', tokens: 81000 },
-    { date: '5/2', tokens: 75000 },
-    { date: '5/3', tokens: 92000 },
-    { date: '5/4', tokens: 88000 },
-    { date: '5/5', tokens: 105000 },
-    { date: '5/6', tokens: 98000 },
-  ])
-
-  const [modelPieData] = useState([
-    { name: 'Qwen2.5-72B', value: 60 },
-    { name: 'GPT-4o', value: 20 },
-    { name: 'Claude-3', value: 12 },
-    { name: '其他', value: 8 },
-  ])
-
-  const [latencyData] = useState([
-    { range: '0-200ms', count: 45 },
-    { range: '200-500ms', count: 32 },
-    { range: '500-1s', count: 18 },
-    { range: '1-2s', count: 8 },
-    { range: '>2s', count: 3 },
-  ])
+  const [dailyTokens, setDailyTokens] = useState<{ date: string; tokens: number }[]>([])
+  const [latencyData, setLatencyData] = useState<{ range: string; count: number }[]>([])
 
   const loadData = async () => {
     setLoading(true)
@@ -75,6 +50,16 @@ const MonitoringPage: React.FC = () => {
       console.error('Failed to load monitoring data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadDailyStats = async () => {
+    try {
+      const res = await monitoringApi.getDailyStats(days)
+      setDailyTokens(res.data.daily_tokens)
+      setLatencyData(res.data.latency_distribution)
+    } catch (error) {
+      console.error('Failed to load daily stats:', error)
     }
   }
 
@@ -98,6 +83,7 @@ const MonitoringPage: React.FC = () => {
 
   useEffect(() => {
     loadData()
+    loadDailyStats()
   }, [days])
 
   useEffect(() => {
@@ -260,10 +246,15 @@ const MonitoringPage: React.FC = () => {
         {/* Charts row 1 */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
           <div className="lg:col-span-2">
-            <TokenTrendChart data={tokenTrendData} />
+            <TokenTrendChart data={dailyTokens} />
           </div>
           <div>
-            <ModelPieChart data={modelPieData} />
+            <ModelPieChart
+              data={modelUsage.map((m) => ({
+                name: `${m.provider} ${m.model}`,
+                value: m.input_tokens + m.output_tokens,
+              }))}
+            />
           </div>
         </div>
 
