@@ -262,7 +262,7 @@ const MonitoringPage: React.FC = () => {
         </div>
 
         {/* Model usage table */}
-        <div className="bg-surface-card rounded-2xl border border-border shadow-subtle p-5 mb-6">
+        <div className="bg-surface-card rounded-2xl shadow-elevated p-5 mb-6">
           <div className="text-heading font-semibold text-content-primary mb-4">模型使用量</div>
           <Table
             dataSource={modelUsage}

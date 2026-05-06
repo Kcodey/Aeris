@@ -20,7 +20,7 @@ interface LatencyBarChartProps {
 
 export const LatencyBarChart: React.FC<LatencyBarChartProps> = ({ data }) => {
   return (
-    <div className="bg-surface-card rounded-2xl border border-border shadow-subtle p-5">
+    <div className="bg-surface-card rounded-2xl shadow-elevated p-5">
       <div className="text-heading font-semibold text-content-primary mb-4">延迟分布</div>
       <ResponsiveContainer width="100%" height={180}>
         <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
