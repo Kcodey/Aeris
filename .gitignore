@@ -67,6 +67,9 @@ frontend/node_modules/
 
 # Claude
 .claude/
+.agents/
+.superpowers/
+skills-lock.json
 
 # Docs (local only)
 docs/
