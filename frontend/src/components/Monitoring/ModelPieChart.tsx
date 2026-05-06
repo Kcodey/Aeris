@@ -14,7 +14,7 @@ const COLORS = ['#d97706', '#fbbf24', '#fde68a', '#e7e5e4']
 
 export const ModelPieChart: React.FC<ModelPieChartProps> = ({ data }) => {
   return (
-    <div className="bg-surface-card rounded-2xl border border-[#f0f0f0] shadow-subtle p-5">
+    <div className="bg-surface-card rounded-2xl border border-border shadow-subtle p-5">
       <div className="text-heading font-semibold text-content-primary mb-4">模型用量占比</div>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
