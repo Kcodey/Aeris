@@ -20,6 +20,10 @@ ALLOWED_MIME_TYPES = {
     "application/javascript",
     "text/x-python",
     "text/x-yaml",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+    "application/vnd.ms-excel",  # .xls
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+    "application/msword",  # .doc
 }
 
 # Max file size (100MB)

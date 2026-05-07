@@ -16,6 +16,9 @@ class Message(SQLModel, table=True):
     role: str = Field(max_length=20)  # system, user, assistant, tool
     content: Optional[str] = Field(default=None)
 
+    # Attached files (file IDs)
+    file_ids: Optional[List[int]] = Field(default=None, sa_column=Column(JSON))
+
     # Tool calls
     tool_calls: Optional[List[dict]] = Field(default=None, sa_column=Column(JSON))
     tool_call_id: Optional[str] = Field(default=None, max_length=100)

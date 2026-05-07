@@ -180,6 +180,7 @@ async def chat_websocket(websocket: WebSocket):
                             conversation_id=conversation_id,
                             role="user",
                             content=content,
+                            file_ids=file_ids if file_ids else None,
                         )
                         session.add(user_message)
                         await session.commit()

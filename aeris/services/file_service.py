@@ -260,6 +260,26 @@ class FileService:
             except Exception as e:
                 raise ValueError(f"Failed to extract Excel content: {e}")
 
+        # Word: extract text
+        if file_record.mime_type in [
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",  # .docx
+            "application/msword",  # .doc
+        ]:
+            try:
+                import docx
+                doc = docx.Document(file_path)
+                paragraphs = []
+                for para in doc.paragraphs:
+                    if para.text.strip():
+                        paragraphs.append(para.text)
+                text = "\n".join(paragraphs)
+                # Truncate if too long
+                if len(text) > 8000:
+                    text = text[:8000] + "\n... (内容已截断)"
+                return text
+            except Exception as e:
+                raise ValueError(f"Failed to extract Word content: {e}")
+
         raise ValueError(f"Cannot read file content: {file_record.mime_type}")
 
     async def write_file(

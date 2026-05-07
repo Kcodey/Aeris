@@ -4,6 +4,7 @@ export interface Message {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | null;
   tool_calls?: any[];
+  file_ids?: number[];
   created_at: string;
   // 前端扩展：关联的文件记录（用于图片展示）
   file_records?: any[];

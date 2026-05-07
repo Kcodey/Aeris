@@ -199,6 +199,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
           file_ids: currentFileIds,
         })
       )
+      setAttachedFiles([])
     } else {
       setIsStreaming(false)
       setLoading(false)

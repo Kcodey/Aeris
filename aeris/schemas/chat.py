@@ -15,6 +15,7 @@ class MessageResponse(BaseModel):
     role: str
     content: Optional[str]
     tool_calls: Optional[List[Dict[str, Any]]] = None
+    file_ids: Optional[List[int]] = None
     created_at: datetime
 
     class Config:
