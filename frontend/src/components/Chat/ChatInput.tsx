@@ -96,7 +96,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         {/* Send button */}
         <button
           onClick={onSend}
-          disabled={loading || disabled || !value.trim()}
+          disabled={loading || disabled || (!value.trim() && attachedFiles.length === 0)}
           className="w-8 h-8 rounded-xl bg-brand text-white flex items-center justify-center flex-shrink-0 shadow-glow transition-all duration-200 hover:bg-brand-dark hover:-translate-y-px hover:shadow-[0_4px_16px_rgba(217,119,6,0.35)] active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send size={16} />
