@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { message } from 'antd'
 import { MessageBubble } from './MessageBubble'
 import { ChatInput } from './ChatInput'
 import { EmptyState } from './EmptyState'
@@ -7,6 +8,8 @@ import { fileApi } from '../../services/files'
 import { getToken } from '../../utils/token'
 import { Message } from '../../types/chat'
 import { FileRecord } from '../../types/file'
+
+const MAX_TOTAL_FILE_SIZE = 2 * 1024 * 1024  // 2MB
 
 interface ChatWindowProps {
   conversationId?: number
@@ -115,6 +118,20 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
 
   const handleUpload = async (file: File) => {
     if (!conversationId) return
+
+    // 检查单个文件大小
+    if (file.size > MAX_TOTAL_FILE_SIZE) {
+      message.error(`文件大小不能超过 2MB（当前 ${(file.size / 1024 / 1024).toFixed(2)}MB）`)
+      return
+    }
+
+    // 检查总大小
+    const currentTotal = attachedFiles.reduce((sum, f) => sum + (f.size_bytes || 0), 0)
+    if (currentTotal + file.size > MAX_TOTAL_FILE_SIZE) {
+      message.error('已附加文件总大小不能超过 2MB，请先删除部分文件')
+      return
+    }
+
     const previewUrl = URL.createObjectURL(file)
     setUploading(true)
     try {
