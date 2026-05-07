@@ -29,11 +29,15 @@ async def lifespan(app: FastAPI):
     from aeris.tools.conversation_search import register_conversation_search_tool
     from aeris.tools.file_tools import register_file_tools
     from aeris.tools.schedule_tools import register_schedule_tools
+    from aeris.tools.analyze_excel import register_inspect_excel_tool
+    from aeris.tools.bash_tool import register_bash_tool
 
     registry = get_tool_registry()
     register_conversation_search_tool(registry)
     register_file_tools(registry)
     register_schedule_tools(registry)
+    register_inspect_excel_tool(registry)
+    register_bash_tool(registry)
 
     yield
 
