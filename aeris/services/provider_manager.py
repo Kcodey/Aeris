@@ -59,6 +59,7 @@ class Provider(ABC):
         messages: List[Dict[str, Any]],
         tools: Optional[List[ToolDefinition]] = None,
         stream: bool = False,
+        max_tokens: Optional[int] = None,
     ) -> CompletionResponse:
         """Send chat completion request."""
         pass
@@ -100,6 +101,7 @@ class SGLangProvider(Provider):
         messages: List[Dict[str, Any]],
         tools: Optional[List[ToolDefinition]] = None,
         stream: bool = False,
+        max_tokens: Optional[int] = None,
     ) -> CompletionResponse:
         import time
         start_time = time.time()
@@ -131,13 +133,18 @@ class SGLangProvider(Provider):
             extra_body["reasoning"] = True
             extra_body["reasoning_budget"] = self.thinking_budget
 
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=messages,
-            tools=openai_tools,
-            stream=stream,
-            extra_body=extra_body if extra_body else None,
-        )
+        # Prepare API kwargs
+        kwargs = {
+            "model": self.model,
+            "messages": messages,
+            "tools": openai_tools,
+            "stream": stream,
+            "extra_body": extra_body if extra_body else None,
+        }
+        if max_tokens is not None:
+            kwargs["max_tokens"] = max_tokens
+
+        response = await self.client.chat.completions.create(**kwargs)
 
         if stream:
             # Handle streaming response

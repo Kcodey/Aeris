@@ -16,6 +16,7 @@ export interface Conversation {
   status: string;
   created_at: string;
   updated_at: string | null;
+  last_message_preview?: string | null;
 }
 
 export interface ConversationWithMessages extends Conversation {

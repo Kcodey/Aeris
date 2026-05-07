@@ -29,3 +29,8 @@ class Conversation(SQLModel, table=True):
     # Relationships
     user: Optional["User"] = Relationship(back_populates="conversations")
     messages: List["Message"] = Relationship(back_populates="conversation")
+
+    # 非数据库字段：最后一条消息预览
+    class Config:
+        # 这些字段不会被映射到数据库
+        arbitrary_types_allowed = True

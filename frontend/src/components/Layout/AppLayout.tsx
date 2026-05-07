@@ -51,6 +51,39 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
     }
   }
 
+  const handleUpdateTitle = async (id: number, title: string) => {
+    try {
+      const response = await chatApi.updateConversation(id, { title })
+      setConversations((prev) =>
+        prev.map((conv) => (conv.id === id ? response.data : conv))
+      )
+    } catch (error) {
+      console.error('Failed to update title:', error)
+    }
+  }
+
+  const handleDeleteConversation = async (id: number) => {
+    try {
+      await chatApi.deleteConversation(id)
+      setConversations((prev) => prev.filter((conv) => conv.id !== id))
+      if (selectedConversationId === id) {
+        setSelectedConversationId(null)
+      }
+    } catch (error) {
+      console.error('Failed to delete conversation:', error)
+    }
+  }
+
+  // 刷新对话列表（用于更新标题和消息预览）
+  const refreshConversations = async () => {
+    try {
+      const response = await chatApi.getConversations()
+      setConversations(response.data)
+    } catch (error) {
+      console.error('Failed to refresh conversations:', error)
+    }
+  }
+
   return (
     <div className="h-screen w-screen flex flex-col md:flex-row bg-surface-page overflow-hidden">
       {/* Mobile header */}
@@ -75,12 +108,20 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         onSelectConversation={handleSelectConversation}
         onCreateConversation={handleCreateConversation}
         onLogout={onLogout}
+        onUpdateTitle={handleUpdateTitle}
+        onDeleteConversation={handleDeleteConversation}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
       />
       <main className="flex-1 m-0 md:m-4 md:rounded-xl overflow-hidden">
         <Routes>
-          <Route path="/" element={<ChatPage selectedConversationId={selectedConversationId} />} />
+          <Route path="/" element={
+            <ChatPage
+              selectedConversationId={selectedConversationId}
+              onMessageSent={refreshConversations}
+              onCreateConversation={handleCreateConversation}
+            />
+          } />
           <Route path="/monitoring" element={<MonitoringPage />} />
         </Routes>
       </main>

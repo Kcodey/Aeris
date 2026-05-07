@@ -6,7 +6,7 @@ from sqlmodel import select, desc, delete, func
 
 from aeris.models.conversation import Conversation
 from aeris.models.message import Message
-from aeris.schemas.chat import ConversationCreate, MessageCreate
+from aeris.schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate
 from aeris.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
 from aeris.services.tokenizer import get_tokenizer
 
@@ -53,7 +53,7 @@ class ChatService:
         skip: int = 0,
         limit: int = 20,
     ) -> List[Conversation]:
-        """List user's conversations."""
+        """List user's conversations with last message preview."""
         result = await self.session.execute(
             select(Conversation)
             .where(Conversation.user_id == user_id)
@@ -62,7 +62,28 @@ class ChatService:
             .offset(skip)
             .limit(limit)
         )
-        return result.scalars().all()
+        conversations = result.scalars().all()
+
+        # Get last message preview for each conversation
+        for conv in conversations:
+            msg_result = await self.session.execute(
+                select(Message)
+                .where(Message.conversation_id == conv.id)
+                .order_by(desc(Message.created_at))
+                .limit(1)
+            )
+            last_msg = msg_result.scalar_one_or_none()
+            if last_msg:
+                content = last_msg.content or ""
+                # 截取前60字符作为预览
+                if len(content) > 60:
+                    content = content[:60] + "..."
+                # 使用 object.__setattr__ 绕过 Pydantic 检查
+                object.__setattr__(conv, 'last_message_preview', content)
+            else:
+                object.__setattr__(conv, 'last_message_preview', None)
+
+        return conversations
 
     async def get_conversation_messages(
         self,
@@ -143,12 +164,9 @@ class ChatService:
 
         # Update conversation updated_at
         conversation = await self.get_conversation(user_id, conversation_id)
-        if conversation and not conversation.title:
-            # Auto-generate title from first message
-            conversation.title = content[:50] + "..." if len(content) > 50 else content
         if conversation:
             conversation.updated_at = datetime.utcnow()
-        await self.session.commit()
+            await self.session.commit()
 
         return {
             "user_message": user_message,
@@ -156,6 +174,25 @@ class ChatService:
             "usage": result.usage,
             "tool_calls": result.tool_calls_executed,
         }
+
+    async def update_conversation(
+        self,
+        user_id: int,
+        conversation_id: int,
+        data: ConversationUpdate,
+    ) -> Optional[Conversation]:
+        """Update conversation title."""
+        conversation = await self.get_conversation(user_id, conversation_id)
+        if not conversation:
+            return None
+
+        if data.title is not None:
+            conversation.title = data.title
+            conversation.updated_at = datetime.utcnow()
+
+        await self.session.commit()
+        await self.session.refresh(conversation)
+        return conversation
 
     async def delete_conversation(
         self,

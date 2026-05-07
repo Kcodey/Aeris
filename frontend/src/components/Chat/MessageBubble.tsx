@@ -54,6 +54,15 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {isUser ? (
             message.content
+          ) : isStreaming && !message.content ? (
+            <span className="inline-flex items-center gap-1 text-content-tertiary">
+              AI 思考中
+              <span className="inline-flex">
+                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+              </span>
+            </span>
           ) : (
             <ReactMarkdown
               components={{
@@ -86,14 +95,6 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 />
               ) : null
             )}
-          </div>
-        )}
-
-        {/* Tool call indicator */}
-        {!isUser && isStreaming && message.content === '' && (
-          <div className="mt-1.5 flex items-center gap-1.5 bg-surface-page border border-border rounded-lg px-3 py-2 w-fit">
-            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse-glow" />
-            <span className="text-label text-content-secondary">AI 思考中...</span>
           </div>
         )}
       </div>

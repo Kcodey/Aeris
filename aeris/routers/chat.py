@@ -9,6 +9,7 @@ from aeris.schemas.chat import (
     ChatRequest,
     ChatResponse,
     ConversationCreate,
+    ConversationUpdate,
     ConversationResponse,
     ConversationWithMessages,
     MessageResponse,
@@ -117,3 +118,19 @@ async def delete_conversation(
     if not success:
         raise HTTPException(status_code=404, detail="Conversation not found")
     return None
+
+
+@router.patch("/{conversation_id}", response_model=ConversationResponse)
+async def update_conversation(
+    conversation_id: int,
+    data: ConversationUpdate,
+    current_user: Annotated[TokenData, Depends(get_current_user)],
+    chat_service: Annotated[ChatService, Depends(get_chat_service)],
+):
+    """Update conversation (title only for now)."""
+    conversation = await chat_service.update_conversation(
+        current_user.user_id, conversation_id, data
+    )
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    return conversation

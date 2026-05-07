@@ -16,6 +16,9 @@ export const chatApi = {
   getConversation: (id: number) =>
     api.get<ConversationWithMessages>(`/conversations/${id}`),
 
+  updateConversation: (id: number, data: { title?: string }) =>
+    api.patch<Conversation>(`/conversations/${id}`, data),
+
   sendMessage: (conversationId: number, data: ChatRequest) =>
     api.post<ChatResponse>(`/conversations/${conversationId}/messages`, data),
 

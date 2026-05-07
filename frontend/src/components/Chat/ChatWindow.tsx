@@ -10,9 +10,11 @@ import { FileRecord } from '../../types/file'
 
 interface ChatWindowProps {
   conversationId?: number
+  onMessageSent?: () => void
+  onCreateConversation?: () => void
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, onCreateConversation }) => {
   const [inputValue, setInputValue] = useState('')
   const [loading, setLoading] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -72,6 +74,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
         case 'done':
           setIsStreaming(false)
           setLoading(false)
+          onMessageSent?.()
           break
         case 'error':
           setIsStreaming(false)
@@ -189,7 +192,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
   if (!conversationId) {
     return (
       <div className="h-full">
-        <EmptyState onCreateConversation={() => { /* handled by Sidebar */ }} />
+        <EmptyState onCreateConversation={onCreateConversation} />
       </div>
     )
   }

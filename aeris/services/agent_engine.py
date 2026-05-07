@@ -465,6 +465,26 @@ class AgentEngine:
             "error": "Max iterations reached",
         }
 
+    async def run_simple(
+        self,
+        prompt: str,
+        provider_name: str = "default",
+    ) -> str:
+        """Run a simple non-streaming LLM call without tools or trace saving.
+
+        Used for auxiliary tasks like title generation.
+        """
+        provider = self.provider_manager.get_provider(provider_name)
+        messages = [{"role": "user", "content": prompt}]
+
+        response = await provider.chat_completion(
+            messages=messages,
+            tools=None,
+            stream=False,
+        )
+
+        return response.content or ""
+
 
 # Global engine instance
 _engine: Optional[AgentEngine] = None

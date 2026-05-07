@@ -25,6 +25,10 @@ class ConversationCreate(BaseModel):
     title: Optional[str] = None
 
 
+class ConversationUpdate(BaseModel):
+    title: Optional[str] = None
+
+
 class ConversationResponse(BaseModel):
     id: int
     user_id: int
@@ -32,6 +36,7 @@ class ConversationResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: Optional[datetime]
+    last_message_preview: Optional[str] = None  # 最后一条消息预览
 
     class Config:
         from_attributes = True

@@ -220,29 +220,10 @@ const MonitoringPage: React.FC = () => {
       <Spin spinning={loading}>
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            label="消息数"
-            value={stats?.total_messages || 0}
-            trend={{ value: 12.5, isPositive: true, label: '较上周' }}
-          />
-          <StatCard
-            label="对话数"
-            value={stats?.total_conversations || 0}
-            trend={{ value: 8.3, isPositive: true, label: '较上周' }}
-          />
-          <StatCard
-            label="Token 用量"
-            value={stats?.total_tokens || 0}
-            suffix=""
-            highlight
-            trend={{ value: 23.1, isPositive: false, label: '较上周' }}
-          />
-          <StatCard
-            label="平均延迟"
-            value={stats?.avg_latency_ms || 0}
-            suffix="ms"
-            trend={{ value: 5.2, isPositive: true, label: '较上周' }}
-          />
+          <StatCard label="消息数" value={stats?.total_messages || 0} />
+          <StatCard label="对话数" value={stats?.total_conversations || 0} />
+          <StatCard label="Token 用量" value={stats?.total_tokens || 0} suffix="" highlight />
+          <StatCard label="平均延迟" value={stats?.avg_latency_ms || 0} suffix="ms" />
         </div>
 
         {/* Charts row 1: Token trend full width */}
