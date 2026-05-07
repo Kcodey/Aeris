@@ -238,6 +238,28 @@ class FileService:
             except Exception as e:
                 raise ValueError(f"Failed to extract PDF text: {e}")
 
+        # Excel: extract as markdown table
+        if file_record.mime_type in [
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
+            "application/vnd.ms-excel",  # .xls
+        ]:
+            try:
+                import pandas as pd
+                # Read all sheets
+                xls = pd.ExcelFile(file_path)
+                result = []
+                for sheet_name in xls.sheet_names:
+                    df = pd.read_excel(file_path, sheet_name=sheet_name)
+                    # Convert to markdown table (first 100 rows for preview)
+                    preview_df = df.head(100)
+                    md_table = preview_df.to_markdown(index=False)
+                    result.append(f"## Sheet: {sheet_name}\n\n{md_table}")
+                    if len(df) > 100:
+                        result.append(f"\n*... ({len(df) - 100} more rows) ...*")
+                return "\n\n".join(result)
+            except Exception as e:
+                raise ValueError(f"Failed to extract Excel content: {e}")
+
         raise ValueError(f"Cannot read file content: {file_record.mime_type}")
 
     async def write_file(
