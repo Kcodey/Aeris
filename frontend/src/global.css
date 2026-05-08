@@ -124,6 +124,16 @@ textarea:focus {
   outline: none;
 }
 
+/* Remove focus outline on Recharts charts */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-surface * {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
 /* Accessible focus indicator for buttons */
 button:focus-visible {
   outline: 2px solid #d97706;
