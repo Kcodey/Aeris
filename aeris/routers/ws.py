@@ -10,7 +10,6 @@ from aeris.schemas.chat import StreamingChunk
 from aeris.services.chat_service import ChatService
 from aeris.services.file_service import FileService
 from aeris.services.agent_engine import AgentContext, get_agent_engine
-from aeris.skills.registry import get_skill_registry
 
 router = APIRouter(tags=["websocket"])
 
@@ -190,15 +189,8 @@ async def chat_websocket(websocket: WebSocket):
                         # Get conversation history
                         messages = await chat_service.get_conversation_messages(conversation_id)
 
-                        # Build system prompt with skill catalog
-                        skill_registry = get_skill_registry()
-                        skill_catalog = skill_registry.describe_available()
-                        system_content = f"""You are a helpful AI assistant.
-
-Use load_skill when a task needs specialized instructions before you act.
-Available skills:
-{skill_catalog}
-"""
+                        # Build system prompt (tools disabled)
+                        system_content = "You are a helpful AI assistant."
 
                         # Build LLM messages
                         llm_messages = [
@@ -223,8 +215,8 @@ Available skills:
                             "content": user_content_parts,
                         })
 
-                        # Add conversation history
-                        for msg in messages:
+                        # Add conversation history (exclude current message)
+                        for msg in messages[:-1]:
                             llm_messages.append({
                                 "role": msg.role,
                                 "content": msg.content or "",
