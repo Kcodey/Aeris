@@ -1,4 +1,5 @@
 import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
@@ -10,6 +11,8 @@ from aeris.services.provider_manager import (
 )
 from aeris.services.tokenizer import get_tokenizer
 from aeris.tools.base import ToolResult, get_tool_registry
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -130,6 +133,11 @@ class AgentEngine:
         tool_calls_executed = []
 
         while context.iteration_count < context.max_iterations:
+            iteration = context.iteration_count + 1
+            logger.info(f"[AgentEngine] Iteration {iteration}/{context.max_iterations}")
+            logger.debug(f"[AgentEngine] Request messages:\n{json.dumps(working_messages, ensure_ascii=False, indent=2)}")
+            logger.debug(f"[AgentEngine] Request tools:\n{json.dumps(tool_schemas, ensure_ascii=False, indent=2)}")
+
             # Call LLM
             response = await provider.chat_completion(
                 messages=working_messages,
@@ -139,6 +147,12 @@ class AgentEngine:
 
             # Record usage
             context.record_usage(response.input_tokens, response.output_tokens)
+
+            logger.info(f"[AgentEngine] Response content: {response.content!r}")
+            if response.tool_calls:
+                for tc in response.tool_calls:
+                    logger.info(f"[AgentEngine] Tool call: {tc.name}({tc.arguments})")
+            logger.info(f"[AgentEngine] Usage: input={response.input_tokens}, output={response.output_tokens}")
 
             # Build request/response payload for trace
             request_payload = {
@@ -208,7 +222,9 @@ class AgentEngine:
 
             iteration_tool_results = []
             for tool_call in response.tool_calls:
+                logger.info(f"[AgentEngine] Executing tool: {tool_call.name}({tool_call.arguments})")
                 result = await self._execute_tool(tool_call, context)
+                logger.info(f"[AgentEngine] Tool result: success={result.success}, data={result.data!r}, error={result.error!r}")
                 tool_calls_executed.append({
                     "tool": tool_call.name,
                     "arguments": tool_call.arguments,
@@ -260,6 +276,7 @@ class AgentEngine:
         # Max iterations reached
         end_time = time.time()
         latency_ms = int((end_time - start_time) * 1000)
+        logger.warning(f"[AgentEngine] Max iterations ({context.max_iterations}) reached")
 
         return AgentResult(
             content=None,
@@ -317,6 +334,11 @@ class AgentEngine:
         tool_calls_executed = []
 
         while context.iteration_count < context.max_iterations:
+            iteration = context.iteration_count + 1
+            logger.info(f"[AgentEngine] Stream iteration {iteration}/{context.max_iterations}")
+            logger.debug(f"[AgentEngine] Request messages:\n{json.dumps(working_messages, ensure_ascii=False, indent=2)}")
+            logger.debug(f"[AgentEngine] Request tools:\n{json.dumps(tool_schemas, ensure_ascii=False, indent=2)}")
+
             full_content = ""
             iteration_tool_calls = []
 
@@ -337,6 +359,7 @@ class AgentEngine:
                     }
                 elif chunk.type == "tool_call":
                     iteration_tool_calls.append(chunk.tool_call)
+                    logger.info(f"[AgentEngine] Tool call: {chunk.tool_call.name}({chunk.tool_call.arguments})")
                     yield {
                         "type": "tool_call",
                         "name": chunk.tool_call.name,
@@ -351,6 +374,9 @@ class AgentEngine:
                     stream_first_token_ms = chunk.usage.get("first_token_ms")
                     stream_input_tokens = chunk.usage["input_tokens"]
                     stream_output_tokens = chunk.usage["output_tokens"]
+
+            logger.info(f"[AgentEngine] Stream complete. Content length: {len(full_content)} chars")
+            logger.info(f"[AgentEngine] Usage: input={stream_input_tokens}, output={stream_output_tokens}")
 
             # Save trace after stream completes
             request_payload = {
@@ -416,7 +442,9 @@ class AgentEngine:
 
             iteration_tool_results = []
             for tool_call in iteration_tool_calls:
+                logger.info(f"[AgentEngine] Executing tool: {tool_call.name}({tool_call.arguments})")
                 result = await self._execute_tool(tool_call, context)
+                logger.info(f"[AgentEngine] Tool result: success={result.success}, data={result.data!r}, error={result.error!r}")
                 tool_calls_executed.append({
                     "tool": tool_call.name,
                     "arguments": tool_call.arguments,
@@ -468,6 +496,8 @@ class AgentEngine:
         # Max iterations reached
         end_time = time.time()
         latency_ms = int((end_time - start_time) * 1000)
+        logger.warning(f"[AgentEngine] Max iterations ({context.max_iterations}) reached")
+
         yield {
             "type": "done",
             "usage": {

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,13 @@ from aeris.database import init_db
 from aeris.routers import auth, health, chat, ws, files, tasks, monitoring
 
 settings = get_settings()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -30,22 +38,22 @@ async def lifespan(app: FastAPI):
 
     init_skill_registry(Path(settings.skills_dir))
 
-    # Register tools
-    from aeris.tools.base import get_tool_registry
-    from aeris.tools.conversation_search import register_conversation_search_tool
-    from aeris.tools.file_tools import register_file_tools
-    from aeris.tools.schedule_tools import register_schedule_tools
-    from aeris.tools.analyze_excel import register_inspect_excel_tool
-    from aeris.tools.bash_tool import register_bash_tool
-    from aeris.tools.load_skill import register_load_skill_tool
+    # Register tools - currently disabled for redesign
+    # from aeris.tools.base import get_tool_registry
+    # from aeris.tools.conversation_search import register_conversation_search_tool
+    # from aeris.tools.file_tools import register_file_tools
+    # from aeris.tools.schedule_tools import register_schedule_tools
+    # from aeris.tools.analyze_excel import register_inspect_excel_tool
+    # from aeris.tools.bash_tool import register_bash_tool
+    # from aeris.tools.load_skill import register_load_skill_tool
 
-    registry = get_tool_registry()
-    register_conversation_search_tool(registry)
-    register_file_tools(registry)
-    register_schedule_tools(registry)
-    register_inspect_excel_tool(registry)
-    register_bash_tool(registry)
-    register_load_skill_tool(registry)
+    # registry = get_tool_registry()
+    # register_conversation_search_tool(registry)
+    # register_file_tools(registry)
+    # register_schedule_tools(registry)
+    # register_inspect_excel_tool(registry)
+    # register_bash_tool(registry)
+    # register_load_skill_tool(registry)
 
     yield
 
