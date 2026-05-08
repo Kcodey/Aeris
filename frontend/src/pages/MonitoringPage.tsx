@@ -118,7 +118,19 @@ const MonitoringPage: React.FC = () => {
       title: '时间',
       dataIndex: 'timestamp',
       key: 'timestamp',
-      render: (v: string) => new Date(v).toLocaleString(),
+      render: (v: string) => {
+        const date = new Date(v)
+        // 转换为北京时间 (UTC+8)
+        const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+        return beijingTime.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).replace(/\//g, '-')
+      },
     },
     { title: 'Provider', dataIndex: 'provider', key: 'provider' },
     { title: 'Model', dataIndex: 'model', key: 'model' },
@@ -295,7 +307,18 @@ const MonitoringPage: React.FC = () => {
                   {selectedTrace.trace_id}
                 </Descriptions.Item>
                 <Descriptions.Item label="时间">
-                  {new Date(selectedTrace.timestamp).toLocaleString()}
+                  {(() => {
+                    const date = new Date(selectedTrace.timestamp)
+                    const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+                    return beijingTime.toLocaleString('zh-CN', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    }).replace(/\//g, '-')
+                  })()}
                 </Descriptions.Item>
                 <Descriptions.Item label="Provider">
                   {selectedTrace.provider}

@@ -27,14 +27,18 @@ function getTimeGroup(dateStr: string | null): string {
   if (!dateStr) return '更早'
 
   const date = new Date(dateStr)
+  // 转换为北京时间 (UTC+8)
+  const beijingDate = new Date(date.getTime() + 8 * 60 * 60 * 1000)
   const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+
+  const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate())
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   const thisWeekStart = new Date(today)
   thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay())
 
-  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const dateOnly = new Date(beijingDate.getFullYear(), beijingDate.getMonth(), beijingDate.getDate())
 
   if (dateOnly.getTime() === today.getTime()) {
     return '今天'
@@ -51,14 +55,23 @@ function getTimeGroup(dateStr: string | null): string {
 function formatTime(dateStr: string | null): string {
   if (!dateStr) return ''
   const date = new Date(dateStr)
+  // 转换为北京时间 (UTC+8)
+  const beijingDate = new Date(date.getTime() + 8 * 60 * 60 * 1000)
   const now = new Date()
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const beijingNow = new Date(now.getTime() + 8 * 60 * 60 * 1000)
+
+  const today = new Date(beijingNow.getFullYear(), beijingNow.getMonth(), beijingNow.getDate())
+  const dateOnly = new Date(beijingDate.getFullYear(), beijingDate.getMonth(), beijingDate.getDate())
+
+  const hours = beijingDate.getHours().toString().padStart(2, '0')
+  const minutes = beijingDate.getMinutes().toString().padStart(2, '0')
 
   if (dateOnly.getTime() === today.getTime()) {
-    return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    return `${hours}:${minutes}`
   } else {
-    return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+    const month = (beijingDate.getMonth() + 1).toString()
+    const day = beijingDate.getDate().toString()
+    return `${month}月${day}日`
   }
 }
 
