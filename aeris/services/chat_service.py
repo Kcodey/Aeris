@@ -9,6 +9,7 @@ from aeris.models.message import Message
 from aeris.schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate
 from aeris.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
 from aeris.services.tokenizer import get_tokenizer
+from aeris.skills.registry import get_skill_registry
 
 
 class ChatService:
@@ -129,9 +130,19 @@ class ChatService:
         # Get conversation history
         messages = await self.get_conversation_messages(conversation_id)
 
+        # Build system prompt with skill catalog
+        skill_registry = get_skill_registry()
+        skill_catalog = skill_registry.describe_available()
+        system_content = f"""You are a helpful AI assistant.
+
+Use load_skill when a task needs specialized instructions before you act.
+Available skills:
+{skill_catalog}
+"""
+
         # Build messages for LLM
         llm_messages = [
-            {"role": "system", "content": "You are a helpful AI assistant."}
+            {"role": "system", "content": system_content}
         ]
         for msg in messages:
             llm_messages.append({

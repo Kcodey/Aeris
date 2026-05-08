@@ -24,6 +24,12 @@ async def lifespan(app: FastAPI):
     scheduler.initialize(get_agent_engine())
     scheduler.start()
 
+    # Initialize skill registry
+    from pathlib import Path
+    from aeris.skills.registry import init_skill_registry
+
+    init_skill_registry(Path(settings.skills_dir))
+
     # Register tools
     from aeris.tools.base import get_tool_registry
     from aeris.tools.conversation_search import register_conversation_search_tool
@@ -31,6 +37,7 @@ async def lifespan(app: FastAPI):
     from aeris.tools.schedule_tools import register_schedule_tools
     from aeris.tools.analyze_excel import register_inspect_excel_tool
     from aeris.tools.bash_tool import register_bash_tool
+    from aeris.tools.load_skill import register_load_skill_tool
 
     registry = get_tool_registry()
     register_conversation_search_tool(registry)
@@ -38,6 +45,7 @@ async def lifespan(app: FastAPI):
     register_schedule_tools(registry)
     register_inspect_excel_tool(registry)
     register_bash_tool(registry)
+    register_load_skill_tool(registry)
 
     yield
 

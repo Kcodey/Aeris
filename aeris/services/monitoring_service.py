@@ -26,13 +26,13 @@ class MonitoringService:
         )
         total_messages = message_result.scalar() or 0
 
-        # Token usage
+        # Token usage (from LLMTrace for consistency with daily stats)
         token_result = await self.session.execute(
             select(
-                func.sum(Message.input_tokens),
-                func.sum(Message.output_tokens),
+                func.sum(LLMTrace.input_tokens),
+                func.sum(LLMTrace.output_tokens),
             )
-            .where(Message.created_at >= since)
+            .where(LLMTrace.timestamp >= since)
         )
         row = token_result.first()
         input_tokens = row[0] or 0

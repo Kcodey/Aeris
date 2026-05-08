@@ -220,10 +220,17 @@ class AgentEngine:
                     "result": {"success": result.success, "data": result.data, "error": result.error},
                 })
 
+                if isinstance(result.data, dict) and "text" in result.data:
+                    tool_content = result.data["text"]
+                elif result.success:
+                    tool_content = json.dumps(result.data) if result.data is not None else ""
+                else:
+                    tool_content = result.error or ""
+
                 tool_message = {
                     "role": "tool",
                     "tool_call_id": tool_call.id,
-                    "content": json.dumps(result.data) if result.success else result.error,
+                    "content": tool_content,
                 }
                 working_messages.append(tool_message)
 
@@ -421,10 +428,17 @@ class AgentEngine:
                     "result": {"success": result.success, "data": result.data, "error": result.error},
                 })
 
+                if isinstance(result.data, dict) and "text" in result.data:
+                    tool_content = result.data["text"]
+                elif result.success:
+                    tool_content = json.dumps(result.data) if result.data is not None else ""
+                else:
+                    tool_content = result.error or ""
+
                 tool_message = {
                     "role": "tool",
                     "tool_call_id": tool_call.id,
-                    "content": json.dumps(result.data) if result.success else result.error,
+                    "content": tool_content,
                 }
                 working_messages.append(tool_message)
 

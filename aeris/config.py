@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     # Storage
     uploads_dir: str = "./uploads"
     max_file_size: int = 100 * 1024 * 1024  # 100MB
+    skills_dir: str = "./skills"
 
     # LLM Provider (SGLang)
     sglang_base_url: str = "http://localhost:30000/v1"

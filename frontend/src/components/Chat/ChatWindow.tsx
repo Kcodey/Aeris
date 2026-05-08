@@ -23,6 +23,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
   const [messages, setMessages] = useState<Message[]>([])
   const [isStreaming, setIsStreaming] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<FileRecord[]>([])
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<number>>(new Set())  // ← 新增：选中的文件
   const [filePreviews, setFilePreviews] = useState<Record<number, string>>({})
   const [uploading, setUploading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -136,8 +137,11 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
     setUploading(true)
     try {
       const response = await fileApi.uploadFile(file, conversationId)
+      // 上传后只添加到attachedFiles，不自动选中
       setAttachedFiles((prev) => [...prev, response.data])
       setFilePreviews((prev) => ({ ...prev, [response.data.id]: previewUrl }))
+      // 可选：上传后自动选中第一个文件（引导用户）
+      // setSelectedFileIds((prev) => new Set([...prev, response.data.id]))
     } catch (error) {
       URL.revokeObjectURL(previewUrl)
     } finally {
@@ -145,13 +149,33 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
     }
   }
 
-  const removeAttachedFile = async (fileId: number) => {
-    try {
-      await fileApi.deleteFile(fileId)
-      setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
-    } catch (error) {
-      console.error('Failed to delete file:', error)
-    }
+  const toggleFileSelection = (fileId: number) => {
+    setSelectedFileIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(fileId)) {
+        next.delete(fileId)
+      } else {
+        next.add(fileId)
+      }
+      return next
+    })
+  }
+
+  const detachFile = (fileId: number) => {
+    // 从选中集合移除
+    setSelectedFileIds((prev) => {
+      const next = new Set(prev)
+      next.delete(fileId)
+      return next
+    })
+    // 从显示列表移除（但文件仍保留在对话中）
+    setAttachedFiles((prev) => prev.filter((f) => f.id !== fileId))
+    // 清理预览
+    setFilePreviews((prev) => {
+      const next = { ...prev }
+      delete next[fileId]
+      return next
+    })
   }
 
   const scrollToBottom = () => {
@@ -170,13 +194,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
     setLoading(true)
     setIsStreaming(true)
 
+    // 只包含选中的文件
+    const selectedFiles = attachedFiles.filter((f) => selectedFileIds.has(f.id))
+
     const tempUserMsg: Message = {
       id: Date.now(),
       conversation_id: conversationId,
       role: 'user',
       content,
       created_at: new Date().toISOString(),
-      file_records: attachedFiles,
+      file_records: selectedFiles,  // 只显示选中的文件
     }
 
     const aiPlaceholder: Message = {
@@ -189,7 +216,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
 
     setMessages((prev) => [...prev, tempUserMsg, aiPlaceholder])
 
-    const currentFileIds = attachedFiles.map((f) => f.id)
+    // 只发送选中的文件ID
+    const currentFileIds = Array.from(selectedFileIds)
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({
@@ -199,7 +227,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
           file_ids: currentFileIds,
         })
       )
-      setAttachedFiles([])
+      // 发送后清空选中状态，但保留attachedFiles（文件仍在对话中）
+      setSelectedFileIds(new Set())
     } else {
       setIsStreaming(false)
       setLoading(false)
@@ -209,7 +238,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
   if (!conversationId) {
     return (
       <div className="h-full">
-        <EmptyState onCreateConversation={onCreateConversation} />
+        <EmptyState onCreateConversation={onCreateConversation || (() => {})} />
       </div>
     )
   }
@@ -241,7 +270,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
         onSend={handleSend}
         onUpload={handleUpload}
         attachedFiles={attachedFiles}
-        onRemoveFile={removeAttachedFile}
+        selectedFileIds={selectedFileIds}
+        onToggleFile={toggleFileSelection}
+        onDetachFile={detachFile}
         loading={loading}
         uploading={uploading}
         disabled={!conversationId}
