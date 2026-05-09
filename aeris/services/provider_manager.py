@@ -36,6 +36,7 @@ class CompletionResponse:
     usage_from_api: bool  # 是否来自 API 返回
     latency_ms: int
     first_token_ms: Optional[int]
+    tokens_per_second: Optional[float] = None
 
 
 @dataclass
@@ -219,6 +220,7 @@ class SGLangProvider(Provider):
                 usage_from_api=usage_from_api,
                 latency_ms=latency_ms,
                 first_token_ms=first_token_ms,
+                tokens_per_second=round(output_tokens / (latency_ms / 1000), 2) if latency_ms > 0 else None,
             )
         else:
             # Non-streaming response
@@ -262,6 +264,7 @@ class SGLangProvider(Provider):
                 usage_from_api=usage_from_api,
                 latency_ms=latency_ms,
                 first_token_ms=None,  # No streaming
+                tokens_per_second=round(output_tokens / (latency_ms / 1000), 2) if latency_ms > 0 else None,
             )
 
     async def chat_completion_stream(

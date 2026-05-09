@@ -183,7 +183,8 @@ const MonitoringPage: React.FC = () => {
     { title: '调用次数', dataIndex: 'count', key: 'count' },
     { title: 'Input Tokens', dataIndex: 'input_tokens', key: 'input_tokens' },
     { title: 'Output Tokens', dataIndex: 'output_tokens', key: 'output_tokens' },
-    { title: '平均延迟(ms)', dataIndex: 'avg_latency_ms', key: 'avg_latency_ms' },
+    { title: '首 Token 延迟(ms)', dataIndex: 'avg_first_token_ms', key: 'avg_first_token_ms' },
+    { title: 'Tokens/s', dataIndex: 'avg_tokens_per_second', key: 'avg_tokens_per_second' },
   ]
 
   const traceColumns = [
@@ -210,10 +211,16 @@ const MonitoringPage: React.FC = () => {
     { title: 'Input Tokens', dataIndex: 'input_tokens', key: 'input_tokens' },
     { title: 'Output Tokens', dataIndex: 'output_tokens', key: 'output_tokens' },
     {
-      title: '延迟',
-      dataIndex: 'latency_ms',
-      key: 'latency_ms',
-      render: (v: number) => `${v}ms`,
+      title: '首 Token',
+      dataIndex: 'first_token_ms',
+      key: 'first_token_ms',
+      render: (v: number | undefined) => v ? `${v}ms` : '-',
+    },
+    {
+      title: 'Tokens/s',
+      dataIndex: 'tokens_per_second',
+      key: 'tokens_per_second',
+      render: (v: number | undefined) => v ? v.toFixed(1) : '-',
     },
     {
       title: '错误',

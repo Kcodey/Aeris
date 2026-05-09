@@ -14,7 +14,8 @@ export interface ModelUsage {
   count: number
   input_tokens: number
   output_tokens: number
-  avg_latency_ms: number
+  avg_first_token_ms: number
+  avg_tokens_per_second: number
 }
 
 export interface LLMTrace {

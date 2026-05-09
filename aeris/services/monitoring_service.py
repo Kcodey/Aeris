@@ -45,10 +45,11 @@ class MonitoringService:
         )
         total_conversations = conv_result.scalar() or 0
 
-        # Average latency
+        # Average first token latency
         latency_result = await self.session.execute(
-            select(func.avg(LLMTrace.latency_ms))
+            select(func.avg(LLMTrace.first_token_ms))
             .where(LLMTrace.timestamp >= since)
+            .where(LLMTrace.first_token_ms.isnot(None))
         )
         avg_latency = latency_result.scalar() or 0
 
@@ -105,9 +106,11 @@ class MonitoringService:
                 func.count(LLMTrace.trace_id).label('count'),
                 func.sum(LLMTrace.input_tokens).label('input_tokens'),
                 func.sum(LLMTrace.output_tokens).label('output_tokens'),
-                func.avg(LLMTrace.latency_ms).label('avg_latency'),
+                func.avg(LLMTrace.first_token_ms).label('avg_first_token_ms'),
+                func.avg(LLMTrace.tokens_per_second).label('avg_tokens_per_second'),
             )
             .where(LLMTrace.timestamp >= since)
+            .where(LLMTrace.first_token_ms.isnot(None))
             .group_by(LLMTrace.provider, LLMTrace.model)
             .order_by(desc('count'))
         )
@@ -119,7 +122,8 @@ class MonitoringService:
                 "count": row[2],
                 "input_tokens": int(row[3] or 0),
                 "output_tokens": int(row[4] or 0),
-                "avg_latency_ms": round(row[5] or 0, 2),
+                "avg_first_token_ms": round(row[5] or 0, 2),
+                "avg_tokens_per_second": round(row[6] or 0, 2),
             }
             for row in result.all()
         ]
@@ -149,23 +153,25 @@ class MonitoringService:
             for row in daily_result.all()
         ]
 
-        # Latency distribution from LLMTrace
+        # Latency distribution from LLMTrace (first_token_ms)
         latency_ranges = [
-            (0, 2000, "0-2s"),
+            (0, 500, "0-500ms"),
+            (500, 1000, "500ms-1s"),
+            (1000, 2000, "1s-2s"),
             (2000, 3000, "2s-3s"),
             (3000, 5000, "3s-5s"),
-            (5000, 10000, "5-10s"),
-            (10000, None, "10s以上"),
+            (5000, None, "5s以上"),
         ]
 
         latency_distribution = []
         for low, high, label in latency_ranges:
             query = select(func.count(LLMTrace.trace_id)).where(
                 LLMTrace.timestamp >= since,
-                LLMTrace.latency_ms >= low,
+                LLMTrace.first_token_ms >= low,
+                LLMTrace.first_token_ms.isnot(None),
             )
             if high is not None:
-                query = query.where(LLMTrace.latency_ms < high)
+                query = query.where(LLMTrace.first_token_ms < high)
             count_result = await self.session.execute(query)
             latency_distribution.append({
                 "range": label,
