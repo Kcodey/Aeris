@@ -16,7 +16,7 @@ export const ModelPieChart: React.FC<ModelPieChartProps> = ({ data }) => {
   return (
     <div className="bg-surface-card rounded-2xl shadow-elevated p-5">
       <div className="text-heading font-semibold text-content-primary mb-4">模型用量占比</div>
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={240}>
         <PieChart>
           <Pie
             data={data}
@@ -43,9 +43,9 @@ export const ModelPieChart: React.FC<ModelPieChartProps> = ({ data }) => {
             }}
           />
           <Legend
-            verticalAlign="middle"
-            align="right"
-            layout="vertical"
+            verticalAlign="bottom"
+            align="center"
+            layout="horizontal"
             iconType="circle"
             iconSize={8}
             wrapperStyle={{ fontSize: '12px', color: '#57534e' }}

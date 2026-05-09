@@ -305,6 +305,9 @@ class AgentEngine:
         context: AgentContext,
     ) -> ToolResult:
         """Execute a single tool call."""
+        import time
+        start_time = time.time()
+
         try:
             arguments = json.loads(tool_call.arguments)
         except json.JSONDecodeError as e:
@@ -320,7 +323,54 @@ class AgentEngine:
             "conversation_id": context.conversation_id,
         }
 
-        return await self.tool_registry.execute(tool_call.name, arguments)
+        # Execute tool
+        result = await self.tool_registry.execute(tool_call.name, arguments)
+
+        # Record skill usage if this is load_skill tool
+        if tool_call.name == "load_skill" and context.session:
+            await self._record_skill_usage(
+                context=context,
+                skill_name=arguments.get("name", "unknown"),
+                result=result,
+                latency_ms=int((time.time() - start_time) * 1000),
+            )
+
+        return result
+
+    async def _record_skill_usage(
+        self,
+        context: AgentContext,
+        skill_name: str,
+        result: ToolResult,
+        latency_ms: int,
+    ):
+        """Record skill usage to database."""
+        try:
+            from aeris.models.skill_usage import SkillUsage
+
+            content_length = None
+            if result.success and result.data and isinstance(result.data, dict):
+                text = result.data.get("text", "")
+                content_length = len(text)
+
+            usage = SkillUsage(
+                user_id=context.user_id,
+                conversation_id=context.conversation_id,
+                message_id=context.message_id,
+                skill_name=skill_name,
+                success=result.success,
+                error_message=result.error if not result.success else None,
+                latency_ms=latency_ms,
+                content_length=content_length,
+                extra_meta={
+                    "provider_name": context.provider_name,
+                },
+            )
+            context.session.add(usage)
+            await context.session.commit()
+            logger.info(f"[AgentEngine] Skill usage recorded: {skill_name}, success={result.success}")
+        except Exception as e:
+            logger.warning(f"[AgentEngine] Failed to record skill usage: {e}")
 
     async def run_stream(
         self,

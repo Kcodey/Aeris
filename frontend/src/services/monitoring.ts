@@ -1,5 +1,5 @@
 import api from './api'
-import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
+import { DashboardStats, ModelUsage, LLMTrace, SkillUsageStat, SkillUsageTimeline, SkillUsageRecord } from '../types/monitoring'
 
 export const monitoringApi = {
   getDashboard: (hours?: number) =>
@@ -16,4 +16,14 @@ export const monitoringApi = {
 
   getDailyStats: (hours?: number) =>
     api.get<{ period_hours: number; daily_tokens: { date: string; tokens: number }[]; latency_distribution: { range: string; count: number }[] }>('/monitoring/daily-stats', { params: { hours } }),
+
+  // Skill usage APIs
+  getSkillUsageStats: (hours?: number) =>
+    api.get<{ period_hours: number; stats: SkillUsageStat[]; total_calls: number }>('/monitoring/skill-usage/stats', { params: { hours } }),
+
+  getSkillUsageTimeline: (skillName?: string, hours?: number) =>
+    api.get<SkillUsageTimeline>('/monitoring/skill-usage/timeline', { params: { skill_name: skillName, hours } }),
+
+  getRecentSkillUsage: (limit?: number) =>
+    api.get<SkillUsageRecord[]>('/monitoring/skill-usage/recent', { params: { limit } }),
 }

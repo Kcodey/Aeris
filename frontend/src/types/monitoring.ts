@@ -39,3 +39,27 @@ export interface LLMTrace {
   error_type?: string
   error_message?: string
 }
+
+export interface SkillUsageStat {
+  skill_name: string
+  call_count: number
+  success_count: number
+  success_rate: number
+  avg_latency_ms: number
+  total_latency_ms: number
+}
+
+export interface SkillUsageTimeline {
+  skill_name?: string
+  period_hours: number
+  timeline: { hour: string; count: number }[]
+}
+
+export interface SkillUsageRecord {
+  id: number
+  skill_name: string
+  success: boolean
+  latency_ms: number
+  timestamp: string
+  conversation_id: number
+}

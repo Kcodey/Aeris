@@ -61,6 +61,8 @@ asyncio.run(query())
 | 02_conversation_messages.sql | 查看对话消息历史 |
 | 03_trace_detail.sql | 单次调用完整输入输出 |
 | 04_slow_requests.sql | 慢请求（>3秒） |
+| 05_list_conversations.sql | 查看所有对话及其 ID |
+| 06_skill_usage_stats.sql | 技能使用统计 |
 
 ## 新增查询
 

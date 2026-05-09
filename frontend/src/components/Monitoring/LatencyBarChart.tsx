@@ -22,8 +22,8 @@ export const LatencyBarChart: React.FC<LatencyBarChartProps> = ({ data }) => {
   return (
     <div className="bg-surface-card rounded-2xl shadow-elevated p-5">
       <div className="text-heading font-semibold text-content-primary mb-4">延迟分布</div>
-      <ResponsiveContainer width="100%" height={180}>
-        <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+      <ResponsiveContainer width="100%" height={240}>
+        <BarChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
           <XAxis
             dataKey="range"
@@ -35,6 +35,7 @@ export const LatencyBarChart: React.FC<LatencyBarChartProps> = ({ data }) => {
             tick={{ fontSize: 12, fill: '#a8a29e' }}
             axisLine={false}
             tickLine={false}
+            width={35}
           />
           <Tooltip
             contentStyle={{

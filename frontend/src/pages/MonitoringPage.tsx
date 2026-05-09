@@ -9,6 +9,8 @@ import {
   Descriptions,
   Collapse,
   Drawer,
+  Card,
+  Statistic,
 } from 'antd'
 import { AlertCircle } from 'lucide-react'
 import { StatCard } from '../components/Monitoring/StatCard'
@@ -18,7 +20,7 @@ import { LatencyBarChart } from '../components/Monitoring/LatencyBarChart'
 import { ConversationDetailDrawer } from '../components/Chat/ConversationDetailDrawer'
 import { monitoringApi } from '../services/monitoring'
 import { chatApi } from '../services/chat'
-import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
+import { DashboardStats, ModelUsage, LLMTrace, SkillUsageStat, SkillUsageRecord } from '../types/monitoring'
 import { Conversation } from '../types/chat'
 
 const PAGE_SIZE = 20
@@ -53,29 +55,34 @@ const MonitoringPage: React.FC = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversationDetailOpen, setConversationDetailOpen] = useState(false)
 
-  const loadData = async () => {
-    setLoading(true)
+  // Skill 使用监控状态
+  const [skillStats, setSkillStats] = useState<SkillUsageStat[]>([])
+  const [recentSkillUsage, setRecentSkillUsage] = useState<SkillUsageRecord[]>([])
+  const [skillLoading, setSkillLoading] = useState(false)
+
+  const loadStats = async () => {
     try {
-      const [statsRes, usageRes] = await Promise.all([
-        monitoringApi.getDashboard(hours),
-        monitoringApi.getModelUsage(hours),
-      ])
-      setStats(statsRes.data)
-      setModelUsage(usageRes.data)
+      const res = await monitoringApi.getDashboard(720)
+      setStats(res.data)
     } catch (error) {
-      console.error('Failed to load monitoring data:', error)
-    } finally {
-      setLoading(false)
+      console.error('Failed to load stats:', error)
     }
   }
 
-  const loadDailyStats = async () => {
+  const loadCharts = async () => {
+    setLoading(true)
     try {
-      const res = await monitoringApi.getDailyStats(hours)
-      setDailyTokens(res.data.daily_tokens)
-      setLatencyData(res.data.latency_distribution)
+      const [usageRes, dailyRes] = await Promise.all([
+        monitoringApi.getModelUsage(hours),
+        monitoringApi.getDailyStats(hours),
+      ])
+      setModelUsage(usageRes.data)
+      setDailyTokens(dailyRes.data.daily_tokens)
+      setLatencyData(dailyRes.data.latency_distribution)
     } catch (error) {
-      console.error('Failed to load daily stats:', error)
+      console.error('Failed to load chart data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -98,8 +105,7 @@ const MonitoringPage: React.FC = () => {
   }
 
   useEffect(() => {
-    loadData()
-    loadDailyStats()
+    loadCharts()
   }, [hours])
 
   useEffect(() => {
@@ -134,6 +140,28 @@ const MonitoringPage: React.FC = () => {
     setSelectedConversation(conv)
     setConversationDetailOpen(true)
   }
+
+  // 加载技能使用数据
+  const loadSkillUsage = async () => {
+    setSkillLoading(true)
+    try {
+      const [statsRes, recentRes] = await Promise.all([
+        monitoringApi.getSkillUsageStats(720),
+        monitoringApi.getRecentSkillUsage(10),
+      ])
+      setSkillStats(statsRes.data.stats)
+      setRecentSkillUsage(recentRes.data)
+    } catch (error) {
+      console.error('Failed to load skill usage:', error)
+    } finally {
+      setSkillLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadStats()
+    loadSkillUsage()
+  }, [])
 
   const handleTraceClick = async (trace: LLMTrace) => {
     setModalVisible(true)
@@ -257,23 +285,6 @@ const MonitoringPage: React.FC = () => {
 
   return (
     <div className="h-full overflow-auto p-6">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-title text-content-primary">监控仪表板</h1>
-        <Select
-          value={hours}
-          onChange={setHours}
-          style={{ width: 130 }}
-          options={[
-            { value: 1, label: '最近1小时' },
-            { value: 24, label: '最近24小时' },
-            { value: 168, label: '最近7天' },
-            { value: 336, label: '最近14天' },
-            { value: 720, label: '最近30天' },
-          ]}
-        />
-      </div>
-
       <Spin spinning={loading}>
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -287,20 +298,34 @@ const MonitoringPage: React.FC = () => {
           <StatCard label="平均延迟" value={stats?.avg_latency_ms || 0} suffix="ms" />
         </div>
 
-        {/* Charts row 1: Token trend full width */}
-        <div className="mb-6">
-          <TokenTrendChart data={dailyTokens} />
-        </div>
+        {/* Charts section with time filter */}
+        <div className="bg-gray-50 rounded-2xl p-5 mb-6">
+          <div className="flex justify-end mb-4">
+            <Select
+              value={hours}
+              onChange={setHours}
+              style={{ width: 130 }}
+              options={[
+                { value: 168, label: '最近7天' },
+                { value: 336, label: '最近14天' },
+                { value: 720, label: '最近30天' },
+              ]}
+            />
+          </div>
 
-        {/* Charts row 2: Latency + Model side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-          <LatencyBarChart data={latencyData} />
-          <ModelPieChart
-            data={modelUsage.map((m) => ({
-              name: `${m.provider} ${m.model}`,
-              value: m.input_tokens + m.output_tokens,
-            }))}
-          />
+          <div className="mb-4">
+            <TokenTrendChart data={dailyTokens} />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <LatencyBarChart data={latencyData} />
+            <ModelPieChart
+              data={modelUsage.map((m) => ({
+                name: `${m.provider} ${m.model}`,
+                value: m.input_tokens + m.output_tokens,
+              }))}
+            />
+          </div>
         </div>
 
         {/* Model usage table */}
@@ -312,6 +337,67 @@ const MonitoringPage: React.FC = () => {
             rowKey={(record) => `${record.provider}-${record.model}`}
             pagination={false}
           />
+        </div>
+
+        {/* Skill usage stats */}
+        <div className="bg-surface-card rounded-2xl shadow-elevated p-5 mb-6">
+          <div className="text-heading font-semibold text-content-primary mb-4">技能使用统计</div>
+          <Spin spinning={skillLoading}>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              {skillStats.slice(0, 4).map((stat) => (
+                <Card key={stat.skill_name} size="small" className="bg-surface-page">
+                  <Statistic
+                    title={stat.skill_name}
+                    value={stat.call_count}
+                    suffix="次"
+                  />
+                </Card>
+              ))}
+            </div>
+            <Table
+              dataSource={skillStats}
+              columns={[
+                { title: '技能名称', dataIndex: 'skill_name', key: 'skill_name' },
+                { title: '调用次数', dataIndex: 'call_count', key: 'call_count', width: 200 },
+              ]}
+              rowKey="skill_name"
+              pagination={false}
+              size="small"
+            />
+          </Spin>
+        </div>
+
+        {/* Recent skill usage */}
+        <div className="bg-surface-card rounded-2xl shadow-elevated p-5 mb-6">
+          <div className="text-heading font-semibold text-content-primary mb-4">最近技能调用</div>
+          <Spin spinning={skillLoading}>
+            <Table
+              dataSource={recentSkillUsage}
+              columns={[
+                { title: '技能名称', dataIndex: 'skill_name', key: 'skill_name' },
+                {
+                  title: '时间',
+                  dataIndex: 'timestamp',
+                  key: 'timestamp',
+                  width: 200,
+                  render: (v: string) => {
+                    const date = new Date(v)
+                    const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+                    return beijingTime.toLocaleString('zh-CN', {
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit',
+                    }).replace(/\//g, '-')
+                  },
+                },
+              ]}
+              rowKey="id"
+              pagination={false}
+              size="small"
+            />
+          </Spin>
         </div>
 
         {/* Trace table */}

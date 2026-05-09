@@ -7,6 +7,7 @@ from aeris.models.message import Message
 from aeris.models.scheduled_task import ScheduledTask
 from aeris.models.file_record import FileRecord
 from aeris.models.trace import LLMTrace
+from aeris.models.skill_usage import SkillUsage
 
 __all__ = [
     "TimestampMixin",
@@ -16,4 +17,5 @@ __all__ = [
     "ScheduledTask",
     "FileRecord",
     "LLMTrace",
+    "SkillUsage",
 ]

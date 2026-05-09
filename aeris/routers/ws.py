@@ -240,7 +240,24 @@ async def chat_websocket(websocket: WebSocket):
                         # Build LLM messages
                         if timing_context:
                             t_build_start = time.time()
-                        system_content = "You are a helpful AI assistant."
+
+                        # Build system prompt with available skills
+                        from aeris.skills.registry import get_skill_registry
+                        from textwrap import dedent
+                        try:
+                            skills_registry = get_skill_registry()
+                            available_skills = skills_registry.describe_available()
+                        except RuntimeError:
+                            available_skills = "(no skills available)"
+
+                        system_content = dedent(f"""\
+                            You are a helpful AI assistant with access to specialized skills.
+
+                            Available skills:
+                            {available_skills}
+
+                            Use the load_skill tool when a task needs specialized instructions before you act.
+                        """).strip()
                         llm_messages = [{"role": "system", "content": system_content}]
 
                         # Build user message content (may include files)
