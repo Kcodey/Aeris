@@ -1,4 +1,6 @@
 import json
+import time
+import uuid
 from typing import Dict, Set
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
@@ -10,8 +12,20 @@ from aeris.schemas.chat import StreamingChunk
 from aeris.services.chat_service import ChatService
 from aeris.services.file_service import FileService
 from aeris.services.agent_engine import AgentContext, get_agent_engine
+from aeris.utils.timing_collector import get_collector, init_collector
 
 router = APIRouter(tags=["websocket"])
+
+# Initialize timing collector on module load
+def init_timing_collector():
+    from aeris.config import get_settings
+    settings = get_settings()
+    init_collector({
+        "ENABLE_TIMING_TRACE": settings.enable_timing_trace,
+        "TIMING_FULL_MODE": settings.timing_full_mode,
+        "TIMING_QUEUE_SIZE": settings.timing_queue_size,
+        "TIMING_SLOW_THRESHOLD_MS": settings.timing_slow_threshold_ms,
+    })
 
 # Store active connections: user_id -> Set[WebSocket]
 active_connections: Dict[int, Set[WebSocket]] = {}
@@ -124,13 +138,18 @@ async def build_file_content_messages(
 @router.websocket("/ws/chat")
 async def chat_websocket(websocket: WebSocket):
     """
-    WebSocket endpoint for real-time chat.
+    WebSocket endpoint for real-time chat with full timing trace.
 
     Client sends: {"type": "message", "conversation_id": 123, "content": "hello"}
     Server sends: {"type": "content", "content": "chunk..."}
                   {"type": "done", "usage": {...}}
                   {"type": "error", "error": "..."}
     """
+    t_start = time.time()
+    trace_id = str(uuid.uuid4())
+    collector = get_collector()
+    timing_trace = None
+
     try:
         user = await get_current_user_ws(websocket)
     except HTTPException:
@@ -156,15 +175,31 @@ async def chat_websocket(websocket: WebSocket):
                     })
                     continue
 
-                # Process message
+                # Initialize timing trace if enabled
+                should_collect = collector.should_collect(conversation_id, user["user_id"])
+                if should_collect:
+                    timing_trace = collector.trace_scope(
+                        trace_id, conversation_id, user["user_id"]
+                    )
+                    timing_context = await timing_trace.__aenter__()
+                    timing_context.add_event("ws_received", t_start)
+                else:
+                    timing_context = None
+
                 try:
                     async with get_session_context() as session:
                         chat_service = ChatService(session)
 
                         # Verify conversation
+                        if timing_context:
+                            t_verify_start = time.time()
                         conversation = await chat_service.get_conversation(
                             user["user_id"], conversation_id
                         )
+                        if timing_context:
+                            timing_context.add_event("verify_conv", time.time(),
+                                duration_ms=int((time.time() - t_verify_start) * 1000))
+
                         if not conversation:
                             await websocket.send_json({
                                 "type": "error",
@@ -173,6 +208,8 @@ async def chat_websocket(websocket: WebSocket):
                             continue
 
                         # Save user message
+                        if timing_context:
+                            t_save_start = time.time()
                         from aeris.models.message import Message
                         from aeris.schemas.chat import MessageCreate
 
@@ -186,48 +223,95 @@ async def chat_websocket(websocket: WebSocket):
                         await session.commit()
                         await session.refresh(user_message)
 
-                        # Get conversation history
-                        messages = await chat_service.get_conversation_messages(conversation_id)
+                        if timing_context:
+                            timing_context.add_event("msg_saved", time.time(),
+                                duration_ms=int((time.time() - t_save_start) * 1000),
+                                metadata={"message_id": user_message.id})
 
-                        # Build system prompt (tools disabled)
-                        system_content = "You are a helpful AI assistant."
+                        # Get conversation history
+                        if timing_context:
+                            t_history_start = time.time()
+                        messages = await chat_service.get_conversation_messages(conversation_id)
+                        if timing_context:
+                            timing_context.add_event("history_loaded", time.time(),
+                                duration_ms=int((time.time() - t_history_start) * 1000),
+                                metadata={"history_count": len(messages)})
 
                         # Build LLM messages
-                        llm_messages = [
-                            {"role": "system", "content": system_content}
-                        ]
+                        if timing_context:
+                            t_build_start = time.time()
+                        system_content = "You are a helpful AI assistant."
+                        llm_messages = [{"role": "system", "content": system_content}]
 
                         # Build user message content (may include files)
                         user_content_parts = []
 
                         # Add file contents if any
                         if file_ids:
-                            file_parts, file_warnings = await build_file_content_messages(session, user["user_id"], file_ids)
+                            if timing_context:
+                                t_files_start = time.time()
+                            file_parts, file_warnings = await build_file_content_messages(
+                                session, user["user_id"], file_ids
+                            )
                             user_content_parts.extend(file_parts)
                             for warning in file_warnings:
                                 await websocket.send_json({"type": "warning", "message": warning})
+                            if timing_context:
+                                timing_context.add_event("files_loaded", time.time(),
+                                    duration_ms=int((time.time() - t_files_start) * 1000),
+                                    metadata={"file_count": len(file_ids)})
 
                         # Add text content
                         user_content_parts.append({"type": "text", "text": content})
+                        current_user_message = {"role": "user", "content": user_content_parts}
 
-                        llm_messages.append({
-                            "role": "user",
-                            "content": user_content_parts,
-                        })
+                        # Add conversation history (exclude current message, limit to recent 10)
+                        history_limit = 10  # 只保留最近10轮对话
+                        recent_messages = messages[:-1][-history_limit:] if len(messages) > 1 else []
+                        for msg in recent_messages:
+                            # Merge consecutive messages with same role to avoid invalid sequences
+                            if llm_messages and llm_messages[-1]["role"] == msg.role:
+                                prev_content = llm_messages[-1]["content"] or ""
+                                curr_content = msg.content or ""
+                                llm_messages[-1]["content"] = f"{prev_content}\n\n{curr_content}".strip()
+                            else:
+                                llm_messages.append({
+                                    "role": msg.role,
+                                    "content": msg.content or "",
+                                })
 
-                        # Add conversation history (exclude current message)
-                        for msg in messages[:-1]:
-                            llm_messages.append({
-                                "role": msg.role,
-                                "content": msg.content or "",
-                            })
+                        # Append current user message at the end
+                        # Merge with previous user message if exists to avoid consecutive user roles
+                        if llm_messages and llm_messages[-1]["role"] == "user":
+                            prev_content = llm_messages[-1]["content"]
+                            curr_content = current_user_message["content"]
+                            # Handle different content types (string vs list)
+                            if isinstance(prev_content, str) and isinstance(curr_content, str):
+                                llm_messages[-1]["content"] = f"{prev_content}\n\n{curr_content}".strip()
+                            elif isinstance(prev_content, list) and isinstance(curr_content, list):
+                                llm_messages[-1]["content"] = prev_content + curr_content
+                            elif isinstance(prev_content, str) and isinstance(curr_content, list):
+                                # Convert previous string to list format and append
+                                llm_messages[-1]["content"] = [{"type": "text", "text": prev_content}] + curr_content
+                            elif isinstance(prev_content, list) and isinstance(curr_content, str):
+                                llm_messages[-1]["content"] = prev_content + [{"type": "text", "text": curr_content}]
+                        else:
+                            llm_messages.append(current_user_message)
+
+                        if timing_context:
+                            timing_context.add_event("llm_ready", time.time(),
+                                duration_ms=int((time.time() - t_build_start) * 1000))
 
                         # Run agent with streaming
+                        if timing_context:
+                            t_agent_start = time.time()
+
                         context = AgentContext(
                             user_id=user["user_id"],
                             conversation_id=conversation_id,
                             message_id=user_message.id,
                             session=session,
+                            timing_trace=timing_context,  # Pass trace to AgentEngine
                         )
 
                         agent_engine = get_agent_engine()
@@ -243,7 +327,20 @@ async def chat_websocket(websocket: WebSocket):
                                 usage = chunk.get("usage")
                                 error = chunk.get("error")
 
+                        if timing_context:
+                            timing_context.add_event("agent_done", time.time(),
+                                duration_ms=int((time.time() - t_agent_start) * 1000),
+                                metadata={"output_length": len(full_content)})
+
+                        # Filter thinking tags from doubao model
+                        import re
+                        if full_content:
+                            full_content = re.sub(r'<think[^>]*>.*?</think>', '', full_content, flags=re.DOTALL)
+                            full_content = full_content.strip()
+
                         # Save AI response
+                        if timing_context:
+                            t_ai_save_start = time.time()
                         ai_message = Message(
                             conversation_id=conversation_id,
                             role="assistant",
@@ -255,6 +352,13 @@ async def chat_websocket(websocket: WebSocket):
                         session.add(ai_message)
                         await session.commit()
 
+                        if timing_context:
+                            timing_context.add_event("ai_msg_saved", time.time(),
+                                duration_ms=int((time.time() - t_ai_save_start) * 1000))
+                            # End timing trace
+                            await timing_trace.__aexit__(None, None, None)
+                            timing_trace = None
+
                         # Send final error if max iterations reached
                         if error:
                             await websocket.send_json({
@@ -263,6 +367,9 @@ async def chat_websocket(websocket: WebSocket):
                             })
 
                 except Exception as e:
+                    if timing_trace:
+                        await timing_trace.__aexit__(type(e), e, None)
+                        timing_trace = None
                     await websocket.send_json({
                         "type": "error",
                         "error": str(e),

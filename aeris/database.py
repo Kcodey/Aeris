@@ -18,7 +18,7 @@ else:
 
 engine = create_async_engine(
     async_database_url,
-    echo=settings.debug,
+    echo=False,
     future=True,
 )
 

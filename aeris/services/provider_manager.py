@@ -2,12 +2,14 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 import json
+import logging
 
 import httpx
 from openai import AsyncOpenAI
 
 from aeris.config import get_settings
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
@@ -80,13 +82,13 @@ class Provider(ABC):
 
 
 class SGLangProvider(Provider):
-    """SGLang provider implementation."""
+    """SGLang/Volcano provider implementation."""
 
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.client = AsyncOpenAI(
             base_url=config["base_url"],
-            api_key="not-needed",  # SGLang doesn't require auth
+            api_key=config.get("api_key", "not-needed"),
         )
         self.base_url = config["base_url"].rstrip("/")
         self.supports_tokenize_endpoint = self._check_tokenize_endpoint()
@@ -266,11 +268,22 @@ class SGLangProvider(Provider):
         self,
         messages: List[Dict[str, Any]],
         tools: Optional[List[ToolDefinition]] = None,
+        timing_callback: Optional[callable] = None,
     ):
-        """Stream chat completion, yielding StreamChunk objects as they arrive."""
+        """Stream chat completion, yielding StreamChunk objects as they arrive.
+
+        Args:
+            messages: Chat messages
+            tools: Available tools
+            timing_callback: Optional callback for timing events (stage, timestamp, metadata)
+        """
         import time
-        start_time = time.time()
+        start_time = time.perf_counter()
         first_token_time = None
+
+        # Notify start
+        if timing_callback:
+            timing_callback("api_request_start", time.time())
 
         # Prepare tools for OpenAI format
         openai_tools = None
@@ -295,6 +308,9 @@ class SGLangProvider(Provider):
             extra_body["reasoning"] = True
             extra_body["reasoning_budget"] = self.thinking_budget
 
+        t_before_request = time.perf_counter()
+        # 流式输入的 message
+        logger.info(f"[input messages] {messages}")
         response = await self.client.chat.completions.create(
             model=self.model,
             messages=messages,
@@ -302,21 +318,61 @@ class SGLangProvider(Provider):
             stream=True,
             extra_body=extra_body if extra_body else None,
         )
+        logger.info(f"[output messages] {messages}")
+        if timing_callback:
+            timing_callback("api_request_sent", time.time(),
+                          {"latency_ms": int((time.perf_counter() - t_before_request) * 1000)})
 
         content_parts = []
         tool_calls_parts = {}
         usage = None
+        in_thinking_tag = False
+        thinking_buffer = ""
 
         async for chunk in response:
+            # DEBUG: Log raw chunk from volcano
+            # logger.info(f"[VOLCANO CHUNK] {chunk.model_dump_json()}")
+
             if first_token_time is None:
-                first_token_time = time.time()
+                first_token_time = time.perf_counter()
+                ttft_ms = int((first_token_time - start_time) * 1000)
+                if timing_callback:
+                    timing_callback("first_token", time.time(),
+                                  {"ttft_ms": ttft_ms, "model": self.model})
 
             delta = chunk.choices[0].delta
 
-            # Content
+            # Content with thinking tag filtering
             if delta.content:
-                content_parts.append(delta.content)
-                yield StreamChunk(type="content", content=delta.content)
+                text = delta.content
+                # Log raw content before filtering
+                # logger.info(f"[THINK_FILTER_RAW] text={repr(text)}")
+
+                # Handle thinking tags that may span chunks
+                if in_thinking_tag:
+                    thinking_buffer += text
+                    if "</think>" in thinking_buffer:
+                        in_thinking_tag = False
+                        # Extract content after </think>
+                        after_think = thinking_buffer.split("</think>", 1)[1]
+                        if after_think:
+                            content_parts.append(after_think)
+                            # logger.info(f"[THINK_FILTER_OUT] after_think={repr(after_think)}")
+                            yield StreamChunk(type="content", content=after_think)
+                        thinking_buffer = ""
+                elif "<think" in text:
+                    in_thinking_tag = True
+                    thinking_buffer = text
+                    # Yield content before <think>
+                    before_think = text.split("<think", 1)[0]
+                    if before_think:
+                        content_parts.append(before_think)
+                        # logger.info(f"[THINK_FILTER_OUT] before_think={repr(before_think)}")
+                        yield StreamChunk(type="content", content=before_think)
+                else:
+                    content_parts.append(text)
+                    # logger.info(f"[THINK_FILTER_OUT] text={repr(text)}")
+                    yield StreamChunk(type="content", content=text)
 
             # Tool calls
             if delta.tool_calls:
@@ -335,9 +391,13 @@ class SGLangProvider(Provider):
             if hasattr(chunk, "usage") and chunk.usage:
                 usage = chunk.usage
 
-        end_time = time.time()
+        end_time = time.perf_counter()
         latency_ms = int((end_time - start_time) * 1000)
         first_token_ms = int((first_token_time - start_time) * 1000) if first_token_time else None
+
+        if timing_callback:
+            timing_callback("stream_complete", time.time(),
+                          {"latency_ms": latency_ms, "first_token_ms": first_token_ms})
 
         # Yield collected tool calls
         for idx in sorted(tool_calls_parts.keys()):
@@ -383,7 +443,7 @@ class SGLangProvider(Provider):
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/tokenize",
-                    json={"model": self.model, "text": text},
+                    json={"prompt": text},
                     timeout=5.0,
                 )
                 if response.status_code == 200:
@@ -420,17 +480,28 @@ class ProviderManager:
         from aeris.config import get_settings
         config = get_settings()
 
-        # TODO: Load from providers config file
-        # For now, use default SGLang provider from env
-        provider_config = {
-            "type": "sglang",
-            "base_url": config.sglang_base_url,
-            "model": config.sglang_model,
-            "thinking": {"enabled": False},  # 代码内控制 thinking
-        }
+        # Provider type: "sglang" or "volcano"
+        provider_type = config.provider_type
 
-        if provider_config["type"] == "sglang":
-            self.providers["default"] = SGLangProvider(provider_config)
+        if provider_type == "volcano":
+            provider_config = {
+                "type": "volcano",
+                "base_url": config.volcano_base_url,
+                "api_key": config.volcano_api_key,
+                "model": config.volcano_model,
+                "thinking": {"enabled": False},
+            }
+        else:
+            # Default: SGLang
+            provider_config = {
+                "type": "sglang",
+                "base_url": config.sglang_base_url,
+                "api_key": "not-needed",
+                "model": config.sglang_model,
+                "thinking": {"enabled": False},
+            }
+
+        self.providers["default"] = SGLangProvider(provider_config)
 
     def get_provider(self, name: str = "default") -> Provider:
         """Get provider by name."""
