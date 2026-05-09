@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aeris.config import get_settings
 from aeris.database import init_db
-from aeris.routers import auth, health, chat, ws, files, tasks, monitoring
+from aeris.routers import auth, health, chat, ws, files, tasks, monitoring, timing_admin
 
 settings = get_settings()
 
@@ -23,6 +23,16 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
     await init_db()
+
+    # Initialize timing collector
+    from aeris.utils.timing_collector import init_collector, get_collector
+    init_collector({
+        "ENABLE_TIMING_TRACE": settings.enable_timing_trace,
+        "TIMING_FULL_MODE": settings.timing_full_mode,
+        "TIMING_QUEUE_SIZE": settings.timing_queue_size,
+        "TIMING_SLOW_THRESHOLD_MS": settings.timing_slow_threshold_ms,
+    })
+    get_collector().start_collecting()
 
     # Initialize task scheduler
     from aeris.services.agent_engine import get_agent_engine
@@ -84,6 +94,7 @@ app.include_router(chat.router, prefix="/api/v1")
 app.include_router(files.router, prefix="/api/v1")
 app.include_router(tasks.router, prefix="/api/v1")
 app.include_router(monitoring.router, prefix="/api/v1")
+app.include_router(timing_admin.router)  # Timing admin routes (no prefix for admin)
 app.include_router(ws.router)
 
 

@@ -30,6 +30,9 @@ class AgentContext:
     total_input_tokens: int = field(default=0)
     total_output_tokens: int = field(default=0)
 
+    # Performance timing trace
+    timing_trace: Optional[Any] = None
+
     def get_thinking_config(self) -> Optional[Dict[str, Any]]:
         """Get thinking config for provider."""
         provider_manager = get_provider_manager()
@@ -42,6 +45,12 @@ class AgentContext:
         """Record token usage."""
         self.total_input_tokens += input_tokens
         self.total_output_tokens += output_tokens
+
+    def add_timing_event(self, stage: str, duration_ms: Optional[int] = None,
+                         metadata: Optional[Dict] = None):
+        """Add timing event if trace is enabled."""
+        if self.timing_trace:
+            self.timing_trace.add_event(stage, time.time(), duration_ms, metadata)
 
 
 @dataclass
@@ -347,9 +356,16 @@ class AgentEngine:
             stream_input_tokens = 0
             stream_output_tokens = 0
 
+            # Timing callback for provider
+            def provider_timing_callback(stage: str, timestamp: float, metadata: dict = None):
+                if context.timing_trace:
+                    dur = metadata.get("latency_ms") if metadata else None
+                    context.timing_trace.add_event(f"llm_{stage}", timestamp, dur, metadata)
+
             async for chunk in provider.chat_completion_stream(
                 messages=working_messages,
                 tools=tool_schemas,
+                timing_callback=provider_timing_callback if context.timing_trace else None,
             ):
                 if chunk.type == "content":
                     full_content += chunk.content

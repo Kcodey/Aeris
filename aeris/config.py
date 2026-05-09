@@ -25,9 +25,23 @@ class Settings(BaseSettings):
     max_file_size: int = 100 * 1024 * 1024  # 100MB
     skills_dir: str = "./skills"
 
-    # LLM Provider (SGLang)
+    # LLM Provider Configuration
+    provider_type: str = "sglang"  # "sglang" or "volcano"
+
+    # SGLang Provider
     sglang_base_url: str = "http://localhost:30000/v1"
     sglang_model: str = "default"
+
+    # Volcano Provider (火山引擎)
+    volcano_base_url: str = "https://ark.cn-beijing.volces.com/api/v3"
+    volcano_api_key: str = ""
+    volcano_model: str = ""
+
+    # Performance Timing Trace
+    enable_timing_trace: bool = False
+    timing_full_mode: bool = False
+    timing_queue_size: int = 10000
+    timing_slow_threshold_ms: int = 3000
 
 
 @lru_cache
