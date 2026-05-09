@@ -10,6 +10,7 @@ interface StatCardProps {
     label: string
   }
   highlight?: boolean
+  onClick?: () => void
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
@@ -18,9 +19,17 @@ export const StatCard: React.FC<StatCardProps> = ({
   suffix,
   trend,
   highlight = false,
+  onClick,
 }) => {
+  const clickableClass = onClick
+    ? 'cursor-pointer hover:shadow-lg active:scale-[0.98]'
+    : ''
+
   return (
-    <div className="bg-surface-card rounded-2xl shadow-elevated p-5 transition-all duration-250 hover:-translate-y-0.5">
+    <div
+      onClick={onClick}
+      className={`bg-surface-card rounded-2xl shadow-elevated p-5 transition-all duration-250 hover:-translate-y-0.5 ${clickableClass}`}
+    >
       <div className="text-label text-content-secondary mb-2">{label}</div>
       <div className={`text-display ${highlight ? 'text-brand' : 'text-content-primary'}`}>
         {value}

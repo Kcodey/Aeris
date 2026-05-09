@@ -1,12 +1,7 @@
 import React from 'react'
-import { MessageSquare, BarChart3, LogOut, Plus, X, Edit2, Check, Trash2 } from 'lucide-react'
-
-interface Conversation {
-  id: number
-  title: string | null
-  updated_at: string | null
-  last_message_preview?: string | null
-}
+import { MessageSquare, BarChart3, LogOut, Plus, X, Edit2, Check, Trash2, Info } from 'lucide-react'
+import { Conversation } from '../../types/chat'
+import { ConversationDetailDrawer } from '../Chat/ConversationDetailDrawer'
 
 interface SidebarProps {
   activeRoute: string
@@ -83,7 +78,8 @@ const EditableTitle: React.FC<{
   onSave: (title: string) => void
   onCancel: () => void
   onDelete?: () => void
-}> = ({ title, isEditing, onStartEdit, onSave, onCancel, onDelete }) => {
+  onDetail?: () => void
+}> = ({ title, isEditing, onStartEdit, onSave, onCancel, onDelete, onDetail }) => {
   const [editValue, setEditValue] = React.useState(title || '')
 
   React.useEffect(() => {
@@ -135,6 +131,18 @@ const EditableTitle: React.FC<{
       >
         <Edit2 size={12} />
       </button>
+      {onDetail && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation()
+            onDetail()
+          }}
+          className="opacity-0 group-hover:opacity-100 p-0.5 text-content-tertiary hover:text-brand hover:bg-brand/10 rounded transition-all"
+          title="查看详情"
+        >
+          <Info size={12} />
+        </button>
+      )}
       {onDelete && (
         <button
           onClick={(e) => {
@@ -165,6 +173,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose,
 }) => {
   const [editingId, setEditingId] = React.useState<number | null>(null)
+  const [detailConversation, setDetailConversation] = React.useState<Conversation | null>(null)
+  const [detailOpen, setDetailOpen] = React.useState(false)
 
   const navItems = [
     { key: '/', label: '对话', icon: MessageSquare },
@@ -289,6 +299,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                           onStartEdit={() => setEditingId(conv.id)}
                           onSave={(title) => handleSaveTitle(conv.id, title)}
                           onCancel={() => setEditingId(null)}
+                          onDetail={() => {
+                            setDetailConversation(conv)
+                            setDetailOpen(true)
+                          }}
                           onDelete={() => onDeleteConversation?.(conv.id)}
                         />
                       </div>
@@ -327,6 +341,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
+      <ConversationDetailDrawer
+        conversation={detailConversation}
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+      />
       {/* Desktop sidebar */}
       <aside
         className="hidden md:flex w-64 h-full flex-col bg-white/72 border-r border-white/50 shadow-elevated rounded-r-2xl p-4"

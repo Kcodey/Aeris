@@ -8,7 +8,7 @@ export const monitoringApi = {
   getModelUsage: (hours?: number) =>
     api.get<ModelUsage[]>('/monitoring/model-usage', { params: { hours } }),
 
-  getTraces: (params?: { skip?: number; limit?: number }) =>
+  getTraces: (params?: { skip?: number; limit?: number; conversation_id?: number }) =>
     api.get<LLMTrace[]>('/monitoring/traces', { params }),
 
   getTraceDetail: (traceId: string) =>

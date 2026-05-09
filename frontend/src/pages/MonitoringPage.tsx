@@ -8,14 +8,18 @@ import {
   Tag,
   Descriptions,
   Collapse,
+  Drawer,
 } from 'antd'
 import { AlertCircle } from 'lucide-react'
 import { StatCard } from '../components/Monitoring/StatCard'
 import { TokenTrendChart } from '../components/Monitoring/TokenTrendChart'
 import { ModelPieChart } from '../components/Monitoring/ModelPieChart'
 import { LatencyBarChart } from '../components/Monitoring/LatencyBarChart'
+import { ConversationDetailDrawer } from '../components/Chat/ConversationDetailDrawer'
 import { monitoringApi } from '../services/monitoring'
+import { chatApi } from '../services/chat'
 import { DashboardStats, ModelUsage, LLMTrace } from '../types/monitoring'
+import { Conversation } from '../types/chat'
 
 const PAGE_SIZE = 20
 
@@ -36,6 +40,18 @@ const MonitoringPage: React.FC = () => {
 
   const [dailyTokens, setDailyTokens] = useState<{ date: string; tokens: number }[]>([])
   const [latencyData, setLatencyData] = useState<{ range: string; count: number }[]>([])
+
+  // 对话列表 Drawer 状态
+  const [conversationsDrawerOpen, setConversationsDrawerOpen] = useState(false)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversationsLoading, setConversationsLoading] = useState(false)
+  const [conversationsPage, setConversationsPage] = useState(1)
+  const [conversationsTotal, setConversationsTotal] = useState(0)
+  const CONV_PAGE_SIZE = 20
+
+  // 单个对话详情 Drawer 状态
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const [conversationDetailOpen, setConversationDetailOpen] = useState(false)
 
   const loadData = async () => {
     setLoading(true)
@@ -89,6 +105,35 @@ const MonitoringPage: React.FC = () => {
   useEffect(() => {
     loadTraces(tracePage)
   }, [tracePage])
+
+  const loadConversations = async (page: number) => {
+    setConversationsLoading(true)
+    try {
+      const skip = (page - 1) * CONV_PAGE_SIZE
+      const res = await chatApi.getConversations({ skip, limit: CONV_PAGE_SIZE })
+      setConversations(res.data)
+      // 后端返回的是数组，没有总数，这里做个简单估算
+      if (res.data.length < CONV_PAGE_SIZE) {
+        setConversationsTotal(skip + res.data.length)
+      } else {
+        setConversationsTotal(skip + CONV_PAGE_SIZE + 1)
+      }
+    } catch (error) {
+      console.error('Failed to load conversations:', error)
+    } finally {
+      setConversationsLoading(false)
+    }
+  }
+
+  const handleOpenConversationsDrawer = () => {
+    setConversationsDrawerOpen(true)
+    loadConversations(1)
+  }
+
+  const handleConversationClick = (conv: Conversation) => {
+    setSelectedConversation(conv)
+    setConversationDetailOpen(true)
+  }
 
   const handleTraceClick = async (trace: LLMTrace) => {
     setModalVisible(true)
@@ -233,7 +278,11 @@ const MonitoringPage: React.FC = () => {
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <StatCard label="消息数" value={stats?.total_messages || 0} />
-          <StatCard label="对话数" value={stats?.total_conversations || 0} />
+          <StatCard
+            label="对话数"
+            value={stats?.total_conversations || 0}
+            onClick={handleOpenConversationsDrawer}
+          />
           <StatCard label="Token 用量" value={stats?.total_tokens || 0} suffix="" highlight />
           <StatCard label="平均延迟" value={stats?.avg_latency_ms || 0} suffix="ms" />
         </div>
@@ -380,6 +429,109 @@ const MonitoringPage: React.FC = () => {
           )}
         </Spin>
       </Modal>
+
+      {/* 对话列表 Drawer */}
+      <Drawer
+        title="对话列表"
+        placement="right"
+        width={600}
+        onClose={() => setConversationsDrawerOpen(false)}
+        open={conversationsDrawerOpen}
+      >
+        <Spin spinning={conversationsLoading}>
+          <Table
+            dataSource={conversations}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            onRow={(record) => ({
+              onClick: () => handleConversationClick(record),
+              style: { cursor: 'pointer' },
+            })}
+            columns={[
+              {
+                title: 'ID',
+                dataIndex: 'id',
+                key: 'id',
+                width: 60,
+              },
+              {
+                title: '标题',
+                dataIndex: 'title',
+                key: 'title',
+                render: (title: string | null) => title || '新对话',
+              },
+              {
+                title: '状态',
+                dataIndex: 'status',
+                key: 'status',
+                width: 80,
+                render: (status: string) => (
+                  <Tag color={status === 'active' ? 'green' : 'default'}>
+                    {status}
+                  </Tag>
+                ),
+              },
+              {
+                title: '创建时间',
+                dataIndex: 'created_at',
+                key: 'created_at',
+                width: 160,
+                render: (v: string) => {
+                  const date = new Date(v)
+                  const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+                  return beijingTime.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  }).replace(/\//g, '-')
+                },
+              },
+              {
+                title: '更新时间',
+                dataIndex: 'updated_at',
+                key: 'updated_at',
+                width: 160,
+                render: (v: string | null) => {
+                  if (!v) return '-'
+                  const date = new Date(v)
+                  const beijingTime = new Date(date.getTime() + 8 * 60 * 60 * 1000)
+                  return beijingTime.toLocaleString('zh-CN', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  }).replace(/\//g, '-')
+                },
+              },
+            ]}
+          />
+          <div className="flex justify-end mt-4">
+            <Pagination
+              current={conversationsPage}
+              pageSize={CONV_PAGE_SIZE}
+              total={conversationsTotal}
+              onChange={(page) => {
+                setConversationsPage(page)
+                loadConversations(page)
+              }}
+              showSizeChanger={false}
+            />
+          </div>
+        </Spin>
+      </Drawer>
+
+      {/* 单个对话详情 Drawer */}
+      <ConversationDetailDrawer
+        conversation={selectedConversation}
+        open={conversationDetailOpen}
+        onClose={() => setConversationDetailOpen(false)}
+      />
     </div>
   )
 }
