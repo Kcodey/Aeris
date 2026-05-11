@@ -31,7 +31,7 @@ services:
     volumes:
       - ./aeris:/app/aeris
       - uploads:/app/uploads
-    command: uvicorn aeris.main:app --host 0.0.0.0 --port 8000 --reload
+    command: python run.py
 
 volumes:
   postgres_data:

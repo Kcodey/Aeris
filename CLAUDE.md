@@ -46,7 +46,7 @@ python -m pytest tests/test_task_service.py -v
 
 Start development server:
 ```bash
-uvicorn aeris.main:app --reload
+python run.py
 ```
 
 ## Testing Notes

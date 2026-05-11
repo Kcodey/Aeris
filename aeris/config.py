@@ -9,6 +9,7 @@ class Settings(BaseSettings):
 
     # App
     app_name: str = "Aeris"
+    app_port: int = 8000
     debug: bool = False
     version: str = "0.1.0"
 
