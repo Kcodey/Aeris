@@ -131,7 +131,12 @@ class MonitoringService:
     async def get_daily_stats(self, hours: int = 168) -> Dict[str, Any]:
         """Get daily token usage and latency distribution."""
         from sqlalchemy import Date, cast
-        since = datetime.utcnow() - timedelta(hours=hours)
+        now = datetime.utcnow()
+        # Calculate start date based on days, not hours, to avoid off-by-one
+        # "最近7天" means today + 6 days before = 7 days total
+        days = hours // 24
+        since = datetime.combine((now - timedelta(days=days - 1)).date(), datetime.min.time()) if days > 0 else now
+        end_date = now.date()
 
         # Daily token usage aggregated from LLMTrace
         daily_result = await self.session.execute(
@@ -145,13 +150,22 @@ class MonitoringService:
             .order_by(func.date(LLMTrace.timestamp))
         )
 
-        daily_tokens = [
-            {
-                "date": row[0].strftime("%m/%d") if row[0] else "",
-                "tokens": int((row[1] or 0) + (row[2] or 0)),
-            }
+        # Build dict from query results for O(1) lookup
+        tokens_by_date = {
+            row[0]: int((row[1] or 0) + (row[2] or 0))
             for row in daily_result.all()
-        ]
+        }
+
+        # Fill in all dates in range, missing dates get 0
+        daily_tokens = []
+        current_date = since.date()
+        end_date = datetime.utcnow().date()
+        while current_date <= end_date:
+            daily_tokens.append({
+                "date": current_date.strftime("%m/%d"),
+                "tokens": tokens_by_date.get(current_date, 0),
+            })
+            current_date += timedelta(days=1)
 
         # Latency distribution from LLMTrace (first_token_ms)
         latency_ranges = [
