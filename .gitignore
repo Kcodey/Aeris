@@ -71,5 +71,5 @@ frontend/node_modules/
 .superpowers/
 skills-lock.json
 
-# Docs (local only)
-docs/
+# Demo/test data
+data/
