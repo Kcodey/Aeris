@@ -71,9 +71,14 @@ class MonitoringService:
         error_only: bool = False,
         skip: int = 0,
         limit: int = 50,
-    ) -> List[LLMTrace]:
+    ) -> List[Dict[str, Any]]:
         """Get LLM traces with filters."""
-        query = select(LLMTrace).order_by(desc(LLMTrace.timestamp))
+        from aeris.models.user import User
+        query = (
+            select(LLMTrace, User.username)
+            .join(User, LLMTrace.user_id == User.id)
+            .order_by(desc(LLMTrace.timestamp))
+        )
 
         if user_id:
             query = query.where(LLMTrace.user_id == user_id)
@@ -86,7 +91,27 @@ class MonitoringService:
 
         query = query.offset(skip).limit(limit)
         result = await self.session.execute(query)
-        return result.scalars().all()
+        rows = result.all()
+
+        traces = []
+        for trace, username in rows:
+            trace_dict = {
+                "trace_id": trace.trace_id,
+                "user_id": trace.user_id,
+                "username": username,
+                "conversation_id": trace.conversation_id,
+                "provider": trace.provider,
+                "model": trace.model,
+                "input_tokens": trace.input_tokens,
+                "output_tokens": trace.output_tokens,
+                "latency_ms": trace.latency_ms,
+                "first_token_ms": trace.first_token_ms,
+                "tokens_per_second": trace.tokens_per_second,
+                "timestamp": trace.timestamp,
+                "error_type": trace.error_type,
+            }
+            traces.append(trace_dict)
+        return traces
 
     async def get_trace_detail(self, trace_id: str) -> Optional[LLMTrace]:
         """Get single trace detail."""

@@ -218,7 +218,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Brand */}
       <div className="px-2 mb-4 flex items-center justify-between">
-        <span className="text-sm font-bold text-brand">Aeris</span>
+        <span className="text-sm font-bold text-brand">Meditatio</span>
         <div className="flex items-center gap-1">
           <button
             onClick={onCreateConversation}

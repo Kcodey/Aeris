@@ -21,6 +21,7 @@ export interface ModelUsage {
 export interface LLMTrace {
   trace_id: string
   user_id: number
+  username: string
   conversation_id: number
   message_id?: number
   provider: string

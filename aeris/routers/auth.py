@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     is_active: bool
+    is_admin: bool = False
 
 
 class Token(BaseModel):
@@ -34,6 +35,7 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     user_id: int
     username: str
+    is_admin: bool = False
 
 
 async def get_current_user(
@@ -52,7 +54,14 @@ async def get_current_user(
     username: str = payload.get("username")
     if user_id is None or username is None:
         raise credentials_exception
-    return TokenData(user_id=int(user_id), username=username)
+
+    # Get is_admin from database
+    from aeris.services.auth_service import AuthService
+    auth_service = AuthService(session)
+    user = await auth_service.get_user_by_id(int(user_id))
+    is_admin = user.is_admin if user else False
+
+    return TokenData(user_id=int(user_id), username=username, is_admin=is_admin)
 
 
 @router.post("/register", response_model=UserResponse)
@@ -72,7 +81,7 @@ async def register(
         )
 
     user = await service.create_user(user_data.username, user_data.password)
-    return UserResponse(id=user.id, username=user.username, is_active=user.is_active)
+    return UserResponse(id=user.id, username=user.username, is_active=user.is_active, is_admin=user.is_admin)
 
 
 @router.post("/login", response_model=Token)
@@ -103,4 +112,4 @@ async def read_current_user(
     user = await service.get_user_by_id(current_user.user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return UserResponse(id=user.id, username=user.username, is_active=user.is_active)
+    return UserResponse(id=user.id, username=user.username, is_active=user.is_active, is_admin=user.is_admin)

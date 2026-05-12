@@ -81,10 +81,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       >
         {/* Brand */}
         <div className="flex flex-col items-center mb-6">
-          <div className="w-12 h-12 bg-brand rounded-[14px] flex items-center justify-center text-white text-xl font-bold mb-3 shadow-glow">
-            A
-          </div>
-          <h1 className="text-xl font-bold text-content-primary">Aeris</h1>
+          <h1 className="text-xl font-bold text-content-primary">Meditatio</h1>
           <p className="text-caption text-content-secondary mt-1">AI Agent Platform</p>
         </div>
 

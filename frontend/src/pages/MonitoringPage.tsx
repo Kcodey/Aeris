@@ -206,6 +206,7 @@ const MonitoringPage: React.FC = () => {
         }).replace(/\//g, '-')
       },
     },
+    { title: '用户', dataIndex: 'username', key: 'username' },
     { title: 'Provider', dataIndex: 'provider', key: 'provider' },
     { title: 'Model', dataIndex: 'model', key: 'model' },
     { title: 'Input Tokens', dataIndex: 'input_tokens', key: 'input_tokens' },

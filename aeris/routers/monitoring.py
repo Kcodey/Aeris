@@ -37,9 +37,11 @@ async def get_traces(
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     service: Annotated[MonitoringService, Depends(get_monitoring_service)] = None,
 ):
-    """Get LLM traces."""
+    """Get LLM traces. Admin sees all traces, regular user sees only own."""
+    # Admin (is_admin=True) sees all traces, regular user sees only own
+    user_id = None if current_user.is_admin else current_user.user_id
     traces = await service.get_traces(
-        user_id=current_user.user_id,
+        user_id=user_id,
         conversation_id=conversation_id,
         provider=provider,
         error_only=error_only,

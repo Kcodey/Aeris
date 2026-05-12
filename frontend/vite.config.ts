@@ -15,6 +15,7 @@ export default defineConfig({
   },
   envDir: path.resolve(__dirname, '..'), // 指向项目根目录
   server: {
+    host: '0.0.0.0',
     port: 3000,
     proxy: {
       '/api': {

@@ -21,7 +21,7 @@ async def get_skill_usage_stats(
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
 ):
-    """Get skill usage statistics."""
+    """Get skill usage statistics. Admin sees all, regular user sees own."""
     from datetime import timedelta
 
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -32,11 +32,11 @@ async def get_skill_usage_stats(
             SkillUsage.skill_name,
             func.count(SkillUsage.id).label("call_count"),
         )
-        .where(SkillUsage.user_id == current_user.user_id)
         .where(SkillUsage.timestamp >= cutoff_time)
-        .group_by(SkillUsage.skill_name)
-        .order_by(desc("call_count"))
     )
+    if not current_user.is_admin:
+        stmt = stmt.where(SkillUsage.user_id == current_user.user_id)
+    stmt = stmt.group_by(SkillUsage.skill_name).order_by(desc("call_count"))
 
     result = await session.execute(stmt)
     rows = result.all()
@@ -61,7 +61,7 @@ async def get_skill_usage_timeline(
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
 ):
-    """Get skill usage timeline."""
+    """Get skill usage timeline. Admin sees all, regular user sees own."""
     from datetime import timedelta
 
     cutoff_time = datetime.utcnow() - timedelta(hours=hours)
@@ -71,9 +71,10 @@ async def get_skill_usage_timeline(
             func.date_trunc('hour', SkillUsage.timestamp).label("hour"),
             func.count(SkillUsage.id).label("count"),
         )
-        .where(SkillUsage.user_id == current_user.user_id)
         .where(SkillUsage.timestamp >= cutoff_time)
     )
+    if not current_user.is_admin:
+        stmt = stmt.where(SkillUsage.user_id == current_user.user_id)
 
     if skill_name:
         stmt = stmt.where(SkillUsage.skill_name == skill_name)
@@ -99,13 +100,11 @@ async def get_recent_skill_usage(
     current_user: Annotated[TokenData, Depends(get_current_user)] = None,
     session: Annotated[AsyncSession, Depends(get_session)] = None,
 ):
-    """Get recent skill usage records."""
-    stmt = (
-        select(SkillUsage)
-        .where(SkillUsage.user_id == current_user.user_id)
-        .order_by(desc(SkillUsage.timestamp))
-        .limit(limit)
-    )
+    """Get recent skill usage records. Admin sees all, regular user sees own."""
+    stmt = select(SkillUsage)
+    if not current_user.is_admin:
+        stmt = stmt.where(SkillUsage.user_id == current_user.user_id)
+    stmt = stmt.order_by(desc(SkillUsage.timestamp)).limit(limit)
 
     result = await session.execute(stmt)
     usages = result.scalars().all()

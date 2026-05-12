@@ -96,7 +96,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
         >
           <Menu size={20} />
         </button>
-        <span className="text-sm font-bold text-brand">Aeris</span>
+        <span className="text-sm font-bold text-brand">Meditatio</span>
         <div className="w-9" />
       </div>
 

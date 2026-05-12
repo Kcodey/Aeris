@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     # App
-    app_name: str = "Aeris"
+    app_name: str = "Meditatio"
     app_port: int = 8000
     vite_api_port: int = 8001
     debug: bool = False
