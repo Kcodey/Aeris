@@ -139,12 +139,15 @@ class ChatService:
             available_skills = "(no skills available)"
 
         system_content = dedent(f"""\
-            You are a helpful AI assistant with access to specialized skills.
+            You are a helpful AI assistant with access to specialized skills and bash execution.
 
             Available skills:
             {available_skills}
 
             Use the load_skill tool when a task needs specialized instructions before you act.
+
+            When analyzing CSV or data files, use the bash tool to execute Python for real analysis:
+            bash -c "cd /home/skdy/server/Aeris && python -c 'import pandas as pd; ...'"
         """).strip()
 
         # Build messages for LLM

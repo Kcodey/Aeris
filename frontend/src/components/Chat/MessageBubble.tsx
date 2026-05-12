@@ -1,6 +1,7 @@
 import React from 'react'
 import { Bot, User, FileText, FileSpreadsheet, FileImage, File } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { Image } from 'antd'
 
 interface FileRecord {
@@ -115,6 +116,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
             </span>
           ) : (
             <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
               components={{
                 a: ({ node, ...props }) => (
                   <a {...props} target="_blank" rel="noopener noreferrer" className="text-brand underline" />
@@ -124,6 +126,17 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 ),
                 pre: ({ children }) => <pre className="bg-black/5 rounded-md p-3 overflow-auto text-xs">{children}</pre>,
                 code: ({ children }) => <code className="bg-black/5 rounded px-1 py-0.5 text-xs">{children}</code>,
+                table: ({ children }) => (
+                  <table className="table-auto w-full border-collapse text-xs my-2 border border-gray-200">{children}</table>
+                ),
+                thead: ({ children }) => <thead className="bg-gray-100">{children}</thead>,
+                th: ({ children }) => (
+                  <th className="border border-gray-200 px-2 py-1 text-left font-medium">{children}</th>
+                ),
+                td: ({ children }) => (
+                  <td className="border border-gray-200 px-2 py-1">{children}</td>
+                ),
+                tr: ({ children }) => <tr className="even:bg-gray-50">{children}</tr>,
               }}
             >
               {message.content || ''}

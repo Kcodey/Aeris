@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     # App
     app_name: str = "Aeris"
     app_port: int = 8000
+    vite_api_port: int = 8001
     debug: bool = False
     version: str = "0.1.0"
 
