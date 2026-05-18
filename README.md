@@ -1,4 +1,4 @@
-# Aeris
+# Meditatio
 
 在 OpenClaw/Hermes 架构基础上增加本地用户认证与数据隔离的轻量级 AI Agent 平台。
 
@@ -31,12 +31,12 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/Kcodey/Aeris.git
-cd Aeris
+git clone https://github.com/Kcodey/Meditatio.git
+cd Meditatio
 
 # 创建并激活 Python 环境
-conda create -n aeris python=3.11
-conda activate aeris
+conda create -n meditatio python=3.11
+conda activate meditatio
 
 # 安装依赖
 pip install -e ".[dev]"
@@ -63,7 +63,7 @@ cp .env.example .env
 
 | 变量 | 说明 | 示例 |
 |------|------|------|
-| `DATABASE_URL` | PostgreSQL 连接字符串 | `postgresql://aeris:aeris@localhost:5432/aeris` |
+| `DATABASE_URL` | PostgreSQL 连接字符串 | `postgresql://skdy:skdy@localhost:5432/meditatio` |
 | `SECRET_KEY` | JWT 签名密钥（生产环境务必修改） | `your-secret-key` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | 登录 Token 有效期（分钟） | `1440` |
 | `SGLANG_BASE_URL` | LLM 服务地址 | `http://localhost:30000/v1` |
@@ -73,7 +73,7 @@ cp .env.example .env
 
 ```bash
 # 后端（端口 8000）
-uvicorn aeris.main:app --reload
+uvicorn meditatio.main:app --reload
 
 # 前端（新终端，端口 3000）
 cd frontend
@@ -91,8 +91,8 @@ npm run dev
 pytest tests/ -v
 
 # 代码检查
-black aeris/ tests/
-isort aeris/ tests/
+black meditatio/ tests/
+isort meditatio/ tests/
 ```
 
 ## API 概览
@@ -113,7 +113,7 @@ isort aeris/ tests/
 ## 项目结构
 
 ```
-aeris/
+meditatio/
 ├── main.py                 # FastAPI 入口
 ├── config.py               # Pydantic 配置
 ├── database.py             # Async SQLAlchemy / SQLModel
