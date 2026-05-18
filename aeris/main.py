@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
     # from aeris.tools.analyze_excel import register_inspect_excel_tool
     from aeris.tools.bash_tool import register_bash_tool
     from aeris.tools.load_skill import register_load_skill_tool
+    from aeris.tools.rag_tool import register_rag_tool
 
     registry = get_tool_registry()
     # register_conversation_search_tool(registry)
@@ -64,6 +65,7 @@ async def lifespan(app: FastAPI):
     # register_inspect_excel_tool(registry)
     register_bash_tool(registry)
     register_load_skill_tool(registry)
+    register_rag_tool(registry)
 
     yield
 

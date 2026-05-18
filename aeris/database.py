@@ -28,6 +28,9 @@ async_session_maker = sessionmaker(
     expire_on_commit=False,
 )
 
+# Alias for convenience
+async_session = async_session_maker
+
 
 async def init_db():
     """Initialize database tables."""
