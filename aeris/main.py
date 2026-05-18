@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from aeris.config import get_settings
 from aeris.database import init_db
-from aeris.routers import auth, health, chat, ws, files, tasks, monitoring, timing_admin, skill_usage
+from aeris.routers import auth, health, chat, ws, files, tasks, monitoring, timing_admin, skill_usage, rag
 
 settings = get_settings()
 
@@ -97,6 +97,7 @@ app.include_router(monitoring.router, prefix="/api/v1")
 app.include_router(skill_usage.router, prefix="/api/v1")
 app.include_router(timing_admin.router)  # Timing admin routes (no prefix for admin)
 app.include_router(ws.router)
+app.include_router(rag.router)
 
 
 @app.get("/")
