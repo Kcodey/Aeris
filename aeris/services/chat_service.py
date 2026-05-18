@@ -114,9 +114,10 @@ class ChatService:
 
         1. Save user message
         2. Build conversation history
-        3. Run agent
-        4. Save AI response
-        5. Return result
+        3. Add RAG context if KBs associated
+        4. Run agent
+        5. Save AI response
+        6. Return result
         """
         # Save user message
         user_message = Message(
@@ -151,6 +152,11 @@ class ChatService:
             When analyzing CSV or data files, use the bash tool to execute Python for real analysis:
             bash -c "cd /home/skdy/server/Aeris && python -c 'import pandas as pd; ...'"
         """).strip()
+
+        # Add RAG context if conversation has associated knowledge bases
+        rag_context = await self._get_rag_context(conversation_id, content)
+        if rag_context:
+            system_content += "\n\n" + rag_context
 
         # Build messages for LLM
         llm_messages = [
@@ -233,6 +239,60 @@ class ChatService:
         # Trigger cleanup if deleted count exceeds threshold
         await self._cleanup_deleted_conversations()
         return True
+
+    async def _get_rag_context(self, conversation_id: int, user_message: str) -> str:
+        """获取对话关联知识库的 RAG 检索结果作为上下文"""
+        try:
+            conversation = await self.get_conversation(None, conversation_id)
+            if not conversation or not conversation.knowledge_base_ids:
+                return ""
+
+            kb_ids = json.loads(conversation.knowledge_base_ids)
+            if not kb_ids:
+                return ""
+
+            # 获取知识库信息
+            from aeris.models.knowledge_base import KnowledgeBase
+            from aeris.services.embedding_service import EmbeddingService
+            from aeris.services.knowledge_base_service import KnowledgeBaseService
+
+            EMBEDDING_MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
+
+            kb_result = await self.session.execute(
+                select(KnowledgeBase).where(
+                    KnowledgeBase.id.in_(kb_ids),
+                    KnowledgeBase.is_active == True
+                )
+            )
+            kbs = kb_result.scalars().all()
+            if not kbs:
+                return ""
+
+            kb_infos = [
+                {"kb_id": kb.id, "collection_name": kb.collection_name, "name": kb.name}
+                for kb in kbs
+            ]
+
+            # 执行搜索
+            embedding_service = EmbeddingService(EMBEDDING_MODEL_PATH)
+            kb_service = KnowledgeBaseService(embedding_service)
+            results = kb_service.search_multi(kb_infos=kb_infos, query=user_message, top_k=3)
+
+            if not results:
+                return ""
+
+            # 构建上下文
+            context = "\n\n--- 知识库检索结果 ---\n"
+            for r in results:
+                context += f"\n【{r.kb_name}】\n{r.content}\n"
+            context += "\n--- 结束 ---\n\n"
+            context += "请参考以上知识库检索结果回答用户问题。"
+
+            return context
+
+        except Exception as e:
+            print(f"[ChatService] RAG context error: {e}")
+            return ""
 
     async def _cleanup_deleted_conversations(self, threshold: int = 100, batch_size: int = 20):
         """
