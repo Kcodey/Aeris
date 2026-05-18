@@ -10,6 +10,17 @@ from aeris.schemas.chat import (
     ChatResponse,
     StreamingChunk,
 )
+from aeris.schemas.rag import (
+    KnowledgeBaseCreate,
+    KnowledgeBaseResponse,
+    DocumentUploadResponse,
+    URLFetchRequest,
+    URLFetchResponse,
+    DocumentStatusResponse,
+    SearchRequest,
+    SearchResponse,
+    SearchResultItem,
+)
 
 __all__ = [
     "MessageCreate",
@@ -20,4 +31,13 @@ __all__ = [
     "ChatRequest",
     "ChatResponse",
     "StreamingChunk",
+    "KnowledgeBaseCreate",
+    "KnowledgeBaseResponse",
+    "DocumentUploadResponse",
+    "URLFetchRequest",
+    "URLFetchResponse",
+    "DocumentStatusResponse",
+    "SearchRequest",
+    "SearchResponse",
+    "SearchResultItem",
 ]
