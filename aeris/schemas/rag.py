@@ -1,4 +1,5 @@
 from typing import Optional, List
+from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -15,8 +16,8 @@ class KnowledgeBaseResponse(BaseModel):
     description: str
     collection_name: str
     is_active: bool
-    created_at: str
-    updated_at: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -30,7 +31,7 @@ class DocumentUploadResponse(BaseModel):
     source_type: str
     source_path: str
     status: str
-    created_at: str
+    created_at: datetime
 
 
 class URLFetchRequest(BaseModel):
@@ -46,7 +47,7 @@ class URLFetchResponse(BaseModel):
     source_type: str
     source_path: str
     status: str
-    created_at: str
+    created_at: datetime
 
 
 class DocumentStatusResponse(BaseModel):

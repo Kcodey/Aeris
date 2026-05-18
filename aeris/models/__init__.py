@@ -11,6 +11,7 @@ from aeris.models.trace import LLMTrace
 from aeris.models.skill_usage import SkillUsage
 from aeris.models.knowledge_base import KnowledgeBase
 from aeris.models.document import Document
+from aeris.models.chunk import Chunk
 
 __all__ = [
     "SQLModel",
@@ -24,4 +25,5 @@ __all__ = [
     "SkillUsage",
     "KnowledgeBase",
     "Document",
+    "Chunk",
 ]

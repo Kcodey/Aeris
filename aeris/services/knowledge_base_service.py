@@ -14,15 +14,13 @@ class SearchResult:
         kb_id: int,
         kb_name: str,
         document_id: int,
-        chunk_id: str,
-        content: str,
+        chunk_id: int,
         score: float
     ):
         self.kb_id = kb_id
         self.kb_name = kb_name
         self.document_id = document_id
         self.chunk_id = chunk_id
-        self.content = content
         self.score = score
 
     def to_dict(self) -> Dict[str, Any]:
@@ -31,7 +29,6 @@ class SearchResult:
             "kb_name": self.kb_name,
             "document_id": self.document_id,
             "chunk_id": self.chunk_id,
-            "content": self.content,
             "score": self.score,
         }
 
@@ -67,36 +64,34 @@ class KnowledgeBaseService:
     def upsert_vectors(
         self,
         collection_name: str,
-        chunks: List[str],
+        chunk_ids: List[int],  # DB chunk ids as Qdrant point ids
+        vectors: List[List[float]],
         document_id: int,
         metadata: Dict[str, Any]
-    ) -> List[str]:
-        """添加向量数据
+    ) -> None:
+        """添加向量数据到 Qdrant
 
-        Returns:
-            chunk_id 列表
+        Args:
+            collection_name: Qdrant collection name
+            chunk_ids: 数据库 chunk id 列表（作为 Qdrant point id）
+            vectors: 向量列表
+            document_id: 文档 id
+            metadata: 包含 kb_id, kb_name 等
         """
-        vectors = self.embedding_service.embed_texts(chunks)
-        chunk_ids = []
-
         points = []
-        for i, (chunk, vector) in enumerate(zip(chunks, vectors)):
-            chunk_id = str(uuid.uuid4())
-            chunk_ids.append(chunk_id)
+        for chunk_id, vector in zip(chunk_ids, vectors):
             point = PointStruct(
-                id=chunk_id,
+                id=chunk_id,  # 使用 DB chunk id 作为 Qdrant point id
                 vector=vector,
                 payload={
-                    "content": chunk,
                     "document_id": document_id,
-                    "chunk_index": i,
+                    "chunk_id": chunk_id,
                     **metadata
                 }
             )
             points.append(point)
 
         self.client.upsert(collection_name=collection_name, points=points)
-        return chunk_ids
 
     def search(
         self,
@@ -118,8 +113,7 @@ class KnowledgeBaseService:
                 kb_id=results[0].payload.get("kb_id", 0) if results else 0,
                 kb_name=results[0].payload.get("kb_name", "") if results else "",
                 document_id=r.payload.get("document_id", 0),
-                chunk_id=r.id,
-                content=r.payload.get("content", ""),
+                chunk_id=r.payload.get("chunk_id", 0),
                 score=r.score
             )
             for r in results
@@ -157,8 +151,7 @@ class KnowledgeBaseService:
                         kb_id=kb_info["kb_id"],
                         kb_name=kb_info["name"],
                         document_id=r.payload.get("document_id", 0),
-                        chunk_id=r.id,
-                        content=r.payload.get("content", ""),
+                        chunk_id=r.payload.get("chunk_id", 0),
                         score=r.score
                     ))
             except Exception:

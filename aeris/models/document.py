@@ -5,6 +5,7 @@ from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
     from aeris.models.knowledge_base import KnowledgeBase
+    from aeris.models.chunk import Chunk
 
 
 class Document(SQLModel, table=True):
@@ -22,3 +23,4 @@ class Document(SQLModel, table=True):
     updated_at: Optional[datetime] = Field(default=None)
 
     knowledge_base: Optional["KnowledgeBase"] = Relationship(back_populates="documents")
+    chunks: List["Chunk"] = Relationship(back_populates="document")

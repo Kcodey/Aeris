@@ -107,27 +107,26 @@ class DocumentProcessor:
         document_id: int,
         metadata: dict
     ) -> int:
-        """处理文档：分块、向量化、存储
+        """处理文档：分块、向量化、存储chunk到PG，向量存Qdrant
 
         Returns:
             chunk_count
         """
         chunks = self.split_text(text)
 
-        # 添加元数据
-        chunk_metadata = {
+        # 向量化
+        vectors = self.embedding_service.embed_texts(chunks)
+
+        # 构建元数据（不含content）
+        qdrant_metadata = {
             "kb_id": kb_id,
             "kb_name": metadata.get("kb_name", ""),
-            "document_title": title,
             "source_type": metadata.get("source_type", "unknown"),
-            "source_path": metadata.get("source_path", ""),
         }
 
-        self.kb_service.upsert_vectors(
-            collection_name=collection_name,
-            chunks=chunks,
-            document_id=document_id,
-            metadata=chunk_metadata
-        )
-
+        # 返回 chunks 和 vectors，后续由调用方存储到 PG 并插入 Qdrant
         return len(chunks)
+
+    def get_chunk_content(self, text: str) -> List[str]:
+        """获取文本分块结果（用于外部存储到 PG）"""
+        return self.split_text(text)

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 from typing import List
 import uuid
 import aiofiles
@@ -160,6 +161,8 @@ async def upload_document(
     session: AsyncSession = Depends(get_session),
 ):
     """上传文档到知识库"""
+    from aeris.models.chunk import Chunk
+
     # 获取知识库
     result = await session.execute(
         select(KnowledgeBase).where(KnowledgeBase.id == kb_id, KnowledgeBase.is_active == True)
@@ -187,24 +190,41 @@ async def upload_document(
     await session.commit()
     await session.refresh(doc)
 
-    # 处理文档（同步处理）
+    # 处理文档
     try:
         processor = get_doc_processor()
         text = processor.extract_text_from_file(str(file_path), file_ext)
-        chunk_count = await processor.process_document(
-            text=text,
-            title=file.filename,
-            kb_id=kb_id,
+        chunks = processor.get_chunk_content(text)
+
+        # 1. 存储 chunks 到 PG
+        chunk_db_ids = []
+        for i, chunk_text in enumerate(chunks):
+            chunk = Chunk(
+                document_id=doc.id,
+                content=chunk_text,
+                chunk_index=i,
+            )
+            session.add(chunk)
+            await session.flush()  # 获取 id
+            chunk_db_ids.append(chunk.id)
+
+        # 2. 向量化并存储到 Qdrant
+        vectors = processor.embedding_service.embed_texts(chunks)
+        kb_service = get_kb_service()
+        kb_service.upsert_vectors(
             collection_name=kb.collection_name,
+            chunk_ids=chunk_db_ids,
+            vectors=vectors,
             document_id=doc.id,
             metadata={
+                "kb_id": kb_id,
                 "kb_name": kb.name,
                 "source_type": "upload",
-                "source_path": str(file_path),
             }
         )
+
         doc.status = "ready"
-        doc.chunk_count = chunk_count
+        doc.chunk_count = len(chunks)
     except Exception as e:
         doc.status = "failed"
         doc.error_message = str(e)
@@ -244,23 +264,42 @@ async def fetch_url(
 
     # 处理 URL
     try:
+        from aeris.models.chunk import Chunk
+
         processor = get_doc_processor()
         title, text = processor.extract_text_from_url(url_data.url)
         doc.title = title
-        chunk_count = await processor.process_document(
-            text=text,
-            title=title,
-            kb_id=kb_id,
+        chunks = processor.get_chunk_content(text)
+
+        # 1. 存储 chunks 到 PG
+        chunk_db_ids = []
+        for i, chunk_text in enumerate(chunks):
+            chunk = Chunk(
+                document_id=doc.id,
+                content=chunk_text,
+                chunk_index=i,
+            )
+            session.add(chunk)
+            await session.flush()  # 获取 id
+            chunk_db_ids.append(chunk.id)
+
+        # 2. 向量化并存储到 Qdrant
+        vectors = processor.embedding_service.embed_texts(chunks)
+        kb_service = get_kb_service()
+        kb_service.upsert_vectors(
             collection_name=kb.collection_name,
+            chunk_ids=chunk_db_ids,
+            vectors=vectors,
             document_id=doc.id,
             metadata={
+                "kb_id": kb_id,
                 "kb_name": kb.name,
                 "source_type": "url",
-                "source_path": url_data.url,
             }
         )
+
         doc.status = "ready"
-        doc.chunk_count = chunk_count
+        doc.chunk_count = len(chunks)
     except Exception as e:
         doc.status = "failed"
         doc.error_message = str(e)
@@ -341,7 +380,7 @@ async def search_knowledge_bases(
     if not kb_infos:
         return SearchResponse(results=[])
 
-    # 执行搜索
+    # 执行搜索（只返回 chunk_id 和 score）
     kb_service = get_kb_service()
     results = kb_service.search_multi(
         kb_infos=kb_infos,
@@ -349,4 +388,22 @@ async def search_knowledge_bases(
         top_k=search_data.top_k
     )
 
-    return SearchResponse(results=[r.to_dict() for r in results])
+    # 从 PG 获取 chunk 内容
+    chunk_ids = [r.chunk_id for r in results]
+    if chunk_ids:
+        from aeris.models.chunk import Chunk
+        chunk_result = await session.execute(
+            select(Chunk).where(Chunk.id.in_(chunk_ids))
+        )
+        chunks_map = {c.id: c.content for c in chunk_result.scalars().all()}
+    else:
+        chunks_map = {}
+
+    # 组装结果
+    enriched_results = []
+    for r in results:
+        result_dict = r.to_dict()
+        result_dict["content"] = chunks_map.get(r.chunk_id, "")
+        enriched_results.append(result_dict)
+
+    return SearchResponse(results=enriched_results)

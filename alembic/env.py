@@ -9,7 +9,7 @@ from alembic import context
 
 from aeris.config import get_settings
 from aeris.models import SQLModel
-from aeris.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace, KnowledgeBase, Document
+from aeris.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace, KnowledgeBase, Document, Chunk
 
 settings = get_settings()
 
