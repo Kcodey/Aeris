@@ -9,6 +9,7 @@ from alembic import context
 
 from aeris.config import get_settings
 from aeris.models import SQLModel
+from aeris.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace, KnowledgeBase, Document
 
 settings = get_settings()
 
@@ -30,8 +31,6 @@ config.set_main_option("sqlalchemy.url", async_database_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-from aeris.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace
-
 target_metadata = SQLModel.metadata
 
 
