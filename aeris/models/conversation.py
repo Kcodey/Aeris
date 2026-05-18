@@ -22,6 +22,9 @@ class Conversation(SQLModel, table=True):
         default=None, sa_column=Column(JSON)
     )
 
+    # Associated knowledge base IDs (JSON array of integers)
+    knowledge_base_ids: Optional[str] = Field(default=None, max_length=500)
+
     # Timestamps
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default=None)

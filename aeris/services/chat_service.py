@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import List, Optional
+import json
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, desc, delete, func
@@ -28,6 +29,7 @@ class ChatService:
         conversation = Conversation(
             user_id=user_id,
             title=data.title,
+            knowledge_base_ids=json.dumps(data.knowledge_base_ids) if data.knowledge_base_ids else None,
         )
         self.session.add(conversation)
         await self.session.commit()
