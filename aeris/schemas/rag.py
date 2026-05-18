@@ -70,7 +70,7 @@ class SearchResultItem(BaseModel):
     kb_id: int
     kb_name: str
     document_id: int
-    chunk_id: str
+    chunk_id: int
     content: str
     score: float
 
