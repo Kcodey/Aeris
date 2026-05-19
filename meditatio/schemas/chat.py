@@ -29,6 +29,7 @@ class ConversationCreate(BaseModel):
 
 class ConversationUpdate(BaseModel):
     title: Optional[str] = None
+    knowledge_base_ids: Optional[List[int]] = None
 
 
 class ConversationResponse(BaseModel):

@@ -219,6 +219,10 @@ class ChatService:
             conversation.title = data.title
             conversation.updated_at = datetime.utcnow()
 
+        if data.knowledge_base_ids is not None:
+            conversation.knowledge_base_ids = json.dumps(data.knowledge_base_ids) if data.knowledge_base_ids else None
+            conversation.updated_at = datetime.utcnow()
+
         await self.session.commit()
         await self.session.refresh(conversation)
         return conversation
