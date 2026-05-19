@@ -126,22 +126,15 @@ class RAGSearchTool(Tool):
                     )
                     chunks_map = {c.id: c.content for c in chunk_result.scalars().all()}
 
-            # 格式化结果
-            formatted_results = []
-            for r in results:
-                formatted_results.append({
-                    "kb_name": r.kb_name,
-                    "content": chunks_map.get(r.chunk_id, ""),
-                    "score": round(r.score, 4),
-                })
+            # 格式化结果为纯文本
+            lines = [f"查询: {query}\n结果 ({len(results)} 条):\n"]
+            for i, r in enumerate(results, 1):
+                content = chunks_map.get(r.chunk_id, "").strip()
+                lines.append(f"{i}. 【{r.kb_name}】(相关度: {round(r.score, 4)})\n{content}\n")
 
             return ToolResult(
                 success=True,
-                data={
-                    "query": query,
-                    "results": formatted_results,
-                    "total": len(formatted_results),
-                },
+                data={"text": "\n".join(lines)},
             )
 
         except Exception as e:
