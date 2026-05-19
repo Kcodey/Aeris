@@ -115,12 +115,23 @@ class RAGSearchTool(Tool):
                 top_k=top_k
             )
 
+            # 从 PG 获取 chunk 内容
+            chunk_ids = [r.chunk_id for r in results]
+            chunks_map = {}
+            if chunk_ids:
+                async with async_session() as session:
+                    from meditatio.models.chunk import Chunk
+                    chunk_result = await session.execute(
+                        select(Chunk).where(Chunk.id.in_(chunk_ids))
+                    )
+                    chunks_map = {c.id: c.content for c in chunk_result.scalars().all()}
+
             # 格式化结果
             formatted_results = []
             for r in results:
                 formatted_results.append({
                     "kb_name": r.kb_name,
-                    "content": r.content,
+                    "content": chunks_map.get(r.chunk_id, ""),
                     "score": round(r.score, 4),
                 })
 
