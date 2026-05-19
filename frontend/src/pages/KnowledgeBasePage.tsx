@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { BookOpen } from 'lucide-react'
+import { BookOpen, FileText, Clock } from 'lucide-react'
 import { ragApi, KnowledgeBase } from '../services/rag'
 
 export default function KnowledgeBasePage() {
@@ -24,6 +24,15 @@ export default function KnowledgeBasePage() {
     }
   }
 
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return '-'
+    return new Date(dateStr).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+  }
+
   return (
     <div className="h-full flex flex-col bg-white rounded-xl p-6">
       <div className="flex items-center gap-2 mb-6">
@@ -45,15 +54,25 @@ export default function KnowledgeBasePage() {
           {knowledgeBases.map(kb => (
             <div
               key={kb.id}
-              className="flex items-center gap-3 p-4 bg-surface-page rounded-lg"
+              className="flex items-center gap-4 p-4 bg-surface-page rounded-lg hover:bg-[#F5F5F5] transition-colors"
             >
-              <div className="w-10 h-10 rounded-lg bg-brand-light flex items-center justify-center">
-                <BookOpen size={20} className="text-brand" />
+              <div className="w-12 h-12 rounded-lg bg-brand-light flex items-center justify-center shrink-0">
+                <BookOpen size={24} className="text-brand" />
               </div>
-              <div>
-                <div className="font-medium text-content-primary">{kb.name}</div>
-                <div className="text-xs text-content-tertiary">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-content-primary text-base">{kb.name}</div>
+                <div className="text-sm text-content-secondary mt-1">
                   {kb.description || '暂无描述'}
+                </div>
+                <div className="flex items-center gap-4 mt-2 text-xs text-content-tertiary">
+                  <span className="flex items-center gap-1">
+                    <Clock size={12} />
+                    {formatDate(kb.updated_at)}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <FileText size={12} />
+                    {kb.collection_name}
+                  </span>
                 </div>
               </div>
             </div>
