@@ -66,6 +66,6 @@ def get_tokenizer() -> Tokenizer:
     """Get or create tokenizer singleton."""
     global _tokenizer
     if _tokenizer is None:
-        from aeris.services.provider_manager import get_provider_manager
+        from meditatio.services.provider_manager import get_provider_manager
         _tokenizer = Tokenizer(get_provider_manager())
     return _tokenizer

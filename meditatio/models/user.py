@@ -3,12 +3,12 @@ from typing import Optional, TYPE_CHECKING, List
 
 from sqlmodel import SQLModel, Field, Relationship
 
-from aeris.models.base import TimestampMixin
+from meditatio.models.base import TimestampMixin
 
 if TYPE_CHECKING:
-    from aeris.models.conversation import Conversation
-    from aeris.models.scheduled_task import ScheduledTask
-    from aeris.models.file_record import FileRecord
+    from meditatio.models.conversation import Conversation
+    from meditatio.models.scheduled_task import ScheduledTask
+    from meditatio.models.file_record import FileRecord
 
 
 class User(SQLModel, table=True):

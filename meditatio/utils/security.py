@@ -4,7 +4,7 @@ from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
 
-from aeris.config import get_settings
+from meditatio.config import get_settings
 
 settings = get_settings()
 

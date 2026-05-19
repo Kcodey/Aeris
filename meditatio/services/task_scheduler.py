@@ -10,12 +10,12 @@ from apscheduler.triggers.date import DateTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlmodel import select
 
-from aeris.config import get_settings
-from aeris.database import get_session_context
-from aeris.models.scheduled_task import ScheduledTask
-from aeris.models.message import Message
-from aeris.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
-from aeris.services.chat_service import ChatService
+from meditatio.config import get_settings
+from meditatio.database import get_session_context
+from meditatio.models.scheduled_task import ScheduledTask
+from meditatio.models.message import Message
+from meditatio.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
+from meditatio.services.chat_service import ChatService
 
 settings = get_settings()
 
@@ -217,7 +217,7 @@ class TaskScheduler:
 
         if not conversation_id:
             # Create a new conversation for this task
-            from aeris.models.conversation import Conversation
+            from meditatio.models.conversation import Conversation
             conversation = Conversation(
                 user_id=user_id,
                 title=f"Scheduled task: {task.name}",
@@ -228,7 +228,7 @@ class TaskScheduler:
             conversation_id = conversation.id
 
         # Get conversation history
-        from aeris.services.chat_service import ChatService
+        from meditatio.services.chat_service import ChatService
         chat_service = ChatService(session)
         messages = await chat_service.get_conversation_messages(conversation_id)
 

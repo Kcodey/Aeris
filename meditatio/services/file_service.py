@@ -9,9 +9,9 @@ from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from aeris.config import get_settings
-from aeris.models.file_record import FileRecord
-from aeris.utils.file_utils import (
+from meditatio.config import get_settings
+from meditatio.models.file_record import FileRecord
+from meditatio.utils.file_utils import (
     sanitize_filename,
     generate_safe_filename,
     ensure_user_directory,

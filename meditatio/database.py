@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
-from aeris.config import get_settings
+from meditatio.config import get_settings
 
 settings = get_settings()
 

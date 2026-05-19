@@ -6,7 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Dict
 
-from aeris.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
 
 
 # 危险命令黑名单（正则）

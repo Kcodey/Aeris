@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from aeris.models.user import User
+    from meditatio.models.user import User
 
 
 class FileRecord(SQLModel, table=True):

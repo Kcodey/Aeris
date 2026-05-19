@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from sqlmodel import select
 
-from aeris.database import get_session
-from aeris.routers.auth import get_current_user, TokenData
-from aeris.models.skill_usage import SkillUsage
+from meditatio.database import get_session
+from meditatio.routers.auth import get_current_user, TokenData
+from meditatio.models.skill_usage import SkillUsage
 
 router = APIRouter(prefix="/monitoring", tags=["skill-usage"])
 

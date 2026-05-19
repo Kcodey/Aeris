@@ -4,8 +4,8 @@ from typing import Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from aeris.models.user import User
-from aeris.utils.security import (
+from meditatio.models.user import User
+from meditatio.utils.security import (
     get_password_hash,
     verify_password,
     create_access_token,

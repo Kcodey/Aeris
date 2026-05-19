@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 
-from aeris.database import get_session
+from meditatio.database import get_session
 
 router = APIRouter(tags=["health"])
 

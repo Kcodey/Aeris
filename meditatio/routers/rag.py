@@ -6,8 +6,8 @@ import uuid
 import aiofiles
 from pathlib import Path
 
-from aeris.database import get_session
-from aeris.schemas.rag import (
+from meditatio.database import get_session
+from meditatio.schemas.rag import (
     KnowledgeBaseCreate,
     KnowledgeBaseResponse,
     DocumentUploadResponse,
@@ -17,12 +17,12 @@ from aeris.schemas.rag import (
     SearchRequest,
     SearchResponse,
 )
-from aeris.models.knowledge_base import KnowledgeBase
-from aeris.models.document import Document
-from aeris.services.embedding_service import EmbeddingService
-from aeris.services.knowledge_base_service import KnowledgeBaseService
-from aeris.services.document_processor import DocumentProcessor
-from aeris.routers.auth import get_current_user, TokenData
+from meditatio.models.knowledge_base import KnowledgeBase
+from meditatio.models.document import Document
+from meditatio.services.embedding_service import EmbeddingService
+from meditatio.services.knowledge_base_service import KnowledgeBaseService
+from meditatio.services.document_processor import DocumentProcessor
+from meditatio.routers.auth import get_current_user, TokenData
 
 router = APIRouter(prefix="/api/v1/rag", tags=["rag"])
 
@@ -79,7 +79,7 @@ async def create_knowledge_base(
     current_user: TokenData = Depends(get_current_user),
 ):
     """创建新知识库（管理员）"""
-    from aeris.models.user import User
+    from meditatio.models.user import User
 
     # 检查用户是否为管理员
     user_result = await session.execute(select(User).where(User.id == current_user.user_id))
@@ -123,7 +123,7 @@ async def delete_knowledge_base(
     current_user: TokenData = Depends(get_current_user),
 ):
     """删除知识库（管理员）"""
-    from aeris.models.user import User
+    from meditatio.models.user import User
 
     # 检查用户是否为管理员
     user_result = await session.execute(select(User).where(User.id == current_user.user_id))
@@ -161,7 +161,7 @@ async def upload_document(
     session: AsyncSession = Depends(get_session),
 ):
     """上传文档到知识库"""
-    from aeris.models.chunk import Chunk
+    from meditatio.models.chunk import Chunk
 
     # 获取知识库
     result = await session.execute(
@@ -264,7 +264,7 @@ async def fetch_url(
 
     # 处理 URL
     try:
-        from aeris.models.chunk import Chunk
+        from meditatio.models.chunk import Chunk
 
         processor = get_doc_processor()
         title, text = processor.extract_text_from_url(url_data.url)
@@ -391,7 +391,7 @@ async def search_knowledge_bases(
     # 从 PG 获取 chunk 内容
     chunk_ids = [r.chunk_id for r in results]
     if chunk_ids:
-        from aeris.models.chunk import Chunk
+        from meditatio.models.chunk import Chunk
         chunk_result = await session.execute(
             select(Chunk).where(Chunk.id.in_(chunk_ids))
         )

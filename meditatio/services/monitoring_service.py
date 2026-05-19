@@ -4,9 +4,9 @@ from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, func, desc
 
-from aeris.models.trace import LLMTrace
-from aeris.models.message import Message
-from aeris.models.conversation import Conversation
+from meditatio.models.trace import LLMTrace
+from meditatio.models.message import Message
+from meditatio.models.conversation import Conversation
 
 
 class MonitoringService:
@@ -73,7 +73,7 @@ class MonitoringService:
         limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Get LLM traces with filters."""
-        from aeris.models.user import User
+        from meditatio.models.user import User
         query = (
             select(LLMTrace, User.username)
             .join(User, LLMTrace.user_id == User.id)

@@ -4,9 +4,9 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, desc
 
-from aeris.models.scheduled_task import ScheduledTask
-from aeris.schemas.task import TaskCreate, TaskUpdate
-from aeris.services.task_scheduler import get_task_scheduler
+from meditatio.models.scheduled_task import ScheduledTask
+from meditatio.schemas.task import TaskCreate, TaskUpdate
+from meditatio.services.task_scheduler import get_task_scheduler
 
 
 class TaskService:

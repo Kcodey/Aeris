@@ -4,9 +4,9 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session
-from aeris.routers.auth import get_current_user, TokenData
-from aeris.services.monitoring_service import MonitoringService
+from meditatio.database import get_session
+from meditatio.routers.auth import get_current_user, TokenData
+from meditatio.services.monitoring_service import MonitoringService
 
 router = APIRouter(prefix="/monitoring", tags=["monitoring"])
 

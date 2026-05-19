@@ -6,19 +6,19 @@ from typing import Dict, Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session, get_session_context
-from aeris.routers.auth import verify_token
-from aeris.schemas.chat import StreamingChunk
-from aeris.services.chat_service import ChatService
-from aeris.services.file_service import FileService
-from aeris.services.agent_engine import AgentContext, get_agent_engine
-from aeris.utils.timing_collector import get_collector, init_collector
+from meditatio.database import get_session, get_session_context
+from meditatio.routers.auth import verify_token
+from meditatio.schemas.chat import StreamingChunk
+from meditatio.services.chat_service import ChatService
+from meditatio.services.file_service import FileService
+from meditatio.services.agent_engine import AgentContext, get_agent_engine
+from meditatio.utils.timing_collector import get_collector, init_collector
 
 router = APIRouter(tags=["websocket"])
 
 # Initialize timing collector on module load
 def init_timing_collector():
-    from aeris.config import get_settings
+    from meditatio.config import get_settings
     settings = get_settings()
     init_collector({
         "ENABLE_TIMING_TRACE": settings.enable_timing_trace,
@@ -210,8 +210,8 @@ async def chat_websocket(websocket: WebSocket):
                         # Save user message
                         if timing_context:
                             t_save_start = time.time()
-                        from aeris.models.message import Message
-                        from aeris.schemas.chat import MessageCreate
+                        from meditatio.models.message import Message
+                        from meditatio.schemas.chat import MessageCreate
 
                         user_message = Message(
                             conversation_id=conversation_id,
@@ -242,7 +242,7 @@ async def chat_websocket(websocket: WebSocket):
                             t_build_start = time.time()
 
                         # Build system prompt with available skills
-                        from aeris.skills.registry import get_skill_registry
+                        from meditatio.skills.registry import get_skill_registry
                         from textwrap import dedent
                         try:
                             skills_registry = get_skill_registry()

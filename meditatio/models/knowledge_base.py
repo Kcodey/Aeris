@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING, List
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from aeris.models.document import Document
+    from meditatio.models.document import Document
 
 
 class KnowledgeBase(SQLModel, table=True):

@@ -1,6 +1,6 @@
 """Pydantic schemas for API."""
 
-from aeris.schemas.chat import (
+from meditatio.schemas.chat import (
     MessageCreate,
     MessageResponse,
     ConversationCreate,
@@ -10,7 +10,7 @@ from aeris.schemas.chat import (
     ChatResponse,
     StreamingChunk,
 )
-from aeris.schemas.rag import (
+from meditatio.schemas.rag import (
     KnowledgeBaseCreate,
     KnowledgeBaseResponse,
     DocumentUploadResponse,

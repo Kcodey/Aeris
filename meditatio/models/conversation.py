@@ -5,8 +5,8 @@ from sqlalchemy import Column, JSON
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from aeris.models.user import User
-    from aeris.models.message import Message
+    from meditatio.models.user import User
+    from meditatio.models.message import Message
 
 
 class Conversation(SQLModel, table=True):

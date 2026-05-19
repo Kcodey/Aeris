@@ -3,10 +3,10 @@ from typing import Any, Dict, Optional
 
 from croniter import croniter
 
-from aeris.tools.base import Tool, ToolParameter, ToolResult
-from aeris.schemas.task import TaskCreate
-from aeris.services.task_service import TaskService
-from aeris.database import get_session_context
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.schemas.task import TaskCreate
+from meditatio.services.task_service import TaskService
+from meditatio.database import get_session_context
 
 
 class ScheduleCreateTool(Tool):

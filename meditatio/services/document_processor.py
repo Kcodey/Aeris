@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 from typing import List, Tuple
 from pathlib import Path
 
-from aeris.services.embedding_service import EmbeddingService
-from aeris.services.knowledge_base_service import KnowledgeBaseService
+from meditatio.services.embedding_service import EmbeddingService
+from meditatio.services.knowledge_base_service import KnowledgeBaseService
 
 
 class DocumentProcessor:

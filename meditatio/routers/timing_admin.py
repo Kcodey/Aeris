@@ -2,8 +2,8 @@
 from typing import Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 
-from aeris.utils.timing_collector import get_collector
-from aeris.routers.auth import get_current_user
+from meditatio.utils.timing_collector import get_collector
+from meditatio.routers.auth import get_current_user
 
 router = APIRouter(prefix="/admin/timing", tags=["admin", "timing"])
 

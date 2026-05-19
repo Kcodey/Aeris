@@ -4,13 +4,13 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-from aeris.services.provider_manager import (
+from meditatio.services.provider_manager import (
     get_provider_manager,
     CompletionResponse,
     ToolCall,
 )
-from aeris.services.tokenizer import get_tokenizer
-from aeris.tools.base import ToolResult, get_tool_registry
+from meditatio.services.tokenizer import get_tokenizer
+from meditatio.tools.base import ToolResult, get_tool_registry
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +93,7 @@ class AgentEngine:
             return
 
         try:
-            from aeris.models.trace import LLMTrace
+            from meditatio.models.trace import LLMTrace
 
             trace = LLMTrace(
                 trace_id=str(uuid.uuid4()),
@@ -265,7 +265,7 @@ class AgentEngine:
             # Update trace with tool results
             if context.session:
                 try:
-                    from aeris.models.trace import LLMTrace
+                    from meditatio.models.trace import LLMTrace
                     from sqlmodel import select
                     stmt = (
                         select(LLMTrace)
@@ -349,7 +349,7 @@ class AgentEngine:
     ):
         """Record skill usage to database."""
         try:
-            from aeris.models.skill_usage import SkillUsage
+            from meditatio.models.skill_usage import SkillUsage
 
             content_length = None
             if result.success and result.data and isinstance(result.data, dict):
@@ -543,7 +543,7 @@ class AgentEngine:
             # Update trace with tool results
             if context.session:
                 try:
-                    from aeris.models.trace import LLMTrace
+                    from meditatio.models.trace import LLMTrace
                     from sqlmodel import select
                     stmt = (
                         select(LLMTrace)

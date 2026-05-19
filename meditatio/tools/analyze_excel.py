@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from aeris.database import get_session_context
-from aeris.services.file_service import FileService
-from aeris.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.database import get_session_context
+from meditatio.services.file_service import FileService
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
 
 
 class InspectExcelTool(Tool):

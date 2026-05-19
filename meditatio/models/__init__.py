@@ -1,17 +1,17 @@
 """SQLModel database models."""
 
 from sqlmodel import SQLModel
-from aeris.models.base import TimestampMixin
-from aeris.models.user import User
-from aeris.models.conversation import Conversation
-from aeris.models.message import Message
-from aeris.models.scheduled_task import ScheduledTask
-from aeris.models.file_record import FileRecord
-from aeris.models.trace import LLMTrace
-from aeris.models.skill_usage import SkillUsage
-from aeris.models.knowledge_base import KnowledgeBase
-from aeris.models.document import Document
-from aeris.models.chunk import Chunk
+from meditatio.models.base import TimestampMixin
+from meditatio.models.user import User
+from meditatio.models.conversation import Conversation
+from meditatio.models.message import Message
+from meditatio.models.scheduled_task import ScheduledTask
+from meditatio.models.file_record import FileRecord
+from meditatio.models.trace import LLMTrace
+from meditatio.models.skill_usage import SkillUsage
+from meditatio.models.knowledge_base import KnowledgeBase
+from meditatio.models.document import Document
+from meditatio.models.chunk import Chunk
 
 __all__ = [
     "SQLModel",

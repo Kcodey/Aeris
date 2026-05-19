@@ -7,7 +7,7 @@ import logging
 import httpx
 from openai import AsyncOpenAI
 
-from aeris.config import get_settings
+from meditatio.config import get_settings
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -480,7 +480,7 @@ class ProviderManager:
 
     def _load_providers(self):
         """Load providers from config."""
-        from aeris.config import get_settings
+        from meditatio.config import get_settings
         config = get_settings()
 
         # Provider type: "sglang" or "volcano"

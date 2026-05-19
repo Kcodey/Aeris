@@ -4,8 +4,8 @@ from typing import Optional, TYPE_CHECKING, List
 from sqlmodel import SQLModel, Field, Relationship
 
 if TYPE_CHECKING:
-    from aeris.models.knowledge_base import KnowledgeBase
-    from aeris.models.chunk import Chunk
+    from meditatio.models.knowledge_base import KnowledgeBase
+    from meditatio.models.chunk import Chunk
 
 
 class Document(SQLModel, table=True):

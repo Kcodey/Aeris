@@ -3,11 +3,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session
-from aeris.routers.auth import get_current_user, TokenData
-from aeris.services.file_service import FileService
-from aeris.schemas.files import FileUploadResponse, FileListResponse
-from aeris.utils.file_utils import format_file_size
+from meditatio.database import get_session
+from meditatio.routers.auth import get_current_user, TokenData
+from meditatio.services.file_service import FileService
+from meditatio.schemas.files import FileUploadResponse, FileListResponse
+from meditatio.utils.file_utils import format_file_size
 
 router = APIRouter(prefix="/files", tags=["files"])
 

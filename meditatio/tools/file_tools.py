@@ -2,10 +2,10 @@ from typing import Any, Dict, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session_context
-from aeris.models.file_record import FileRecord
-from aeris.services.file_service import FileService
-from aeris.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.database import get_session_context
+from meditatio.models.file_record import FileRecord
+from meditatio.services.file_service import FileService
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
 
 
 class FileWriteTool(Tool):

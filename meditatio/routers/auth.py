@@ -6,9 +6,9 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session
-from aeris.services.auth_service import AuthService
-from aeris.utils.security import verify_token
+from meditatio.database import get_session
+from meditatio.services.auth_service import AuthService
+from meditatio.utils.security import verify_token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -56,7 +56,7 @@ async def get_current_user(
         raise credentials_exception
 
     # Get is_admin from database
-    from aeris.services.auth_service import AuthService
+    from meditatio.services.auth_service import AuthService
     auth_service = AuthService(session)
     user = await auth_service.get_user_by_id(int(user_id))
     is_admin = user.is_admin if user else False

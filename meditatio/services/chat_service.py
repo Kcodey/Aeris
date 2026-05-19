@@ -5,11 +5,11 @@ import json
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, desc, delete, func
 
-from aeris.models.conversation import Conversation
-from aeris.models.message import Message
-from aeris.schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate
-from aeris.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
-from aeris.services.tokenizer import get_tokenizer
+from meditatio.models.conversation import Conversation
+from meditatio.models.message import Message
+from meditatio.schemas.chat import ConversationCreate, ConversationUpdate, MessageCreate
+from meditatio.services.agent_engine import AgentEngine, AgentContext, get_agent_engine
+from meditatio.services.tokenizer import get_tokenizer
 
 
 class ChatService:
@@ -133,7 +133,7 @@ class ChatService:
         messages = await self.get_conversation_messages(conversation_id)
 
         # Build system prompt with available skills
-        from aeris.skills.registry import get_skill_registry
+        from meditatio.skills.registry import get_skill_registry
         from textwrap import dedent
         try:
             skills_registry = get_skill_registry()
@@ -252,9 +252,9 @@ class ChatService:
                 return ""
 
             # 获取知识库信息
-            from aeris.models.knowledge_base import KnowledgeBase
-            from aeris.services.embedding_service import EmbeddingService
-            from aeris.services.knowledge_base_service import KnowledgeBaseService
+            from meditatio.models.knowledge_base import KnowledgeBase
+            from meditatio.services.embedding_service import EmbeddingService
+            from meditatio.services.knowledge_base_service import KnowledgeBaseService
 
             EMBEDDING_MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
 

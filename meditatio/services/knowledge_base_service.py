@@ -3,7 +3,7 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 from typing import List, Optional, Dict, Any
 import uuid
 
-from aeris.services.embedding_service import EmbeddingService
+from meditatio.services.embedding_service import EmbeddingService
 
 
 class SearchResult:

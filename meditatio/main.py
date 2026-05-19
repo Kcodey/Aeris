@@ -4,9 +4,9 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from aeris.config import get_settings
-from aeris.database import init_db
-from aeris.routers import auth, health, chat, ws, files, tasks, monitoring, timing_admin, skill_usage, rag
+from meditatio.config import get_settings
+from meditatio.database import init_db
+from meditatio.routers import auth, health, chat, ws, files, tasks, monitoring, timing_admin, skill_usage, rag
 
 settings = get_settings()
 
@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     await init_db()
 
     # Initialize timing collector
-    from aeris.utils.timing_collector import init_collector, get_collector
+    from meditatio.utils.timing_collector import init_collector, get_collector
     init_collector({
         "ENABLE_TIMING_TRACE": settings.enable_timing_trace,
         "TIMING_FULL_MODE": settings.timing_full_mode,
@@ -35,8 +35,8 @@ async def lifespan(app: FastAPI):
     get_collector().start_collecting()
 
     # Initialize task scheduler
-    from aeris.services.agent_engine import get_agent_engine
-    from aeris.services.task_scheduler import get_task_scheduler
+    from meditatio.services.agent_engine import get_agent_engine
+    from meditatio.services.task_scheduler import get_task_scheduler
 
     scheduler = get_task_scheduler()
     scheduler.initialize(get_agent_engine())
@@ -44,19 +44,19 @@ async def lifespan(app: FastAPI):
 
     # Initialize skill registry
     from pathlib import Path
-    from aeris.skills.registry import init_skill_registry
+    from meditatio.skills.registry import init_skill_registry
 
     init_skill_registry(Path(settings.skills_dir))
 
     # Register tools - currently disabled for redesign
-    from aeris.tools.base import get_tool_registry
-    # from aeris.tools.conversation_search import register_conversation_search_tool
-    # from aeris.tools.file_tools import register_file_tools
-    # from aeris.tools.schedule_tools import register_schedule_tools
-    # from aeris.tools.analyze_excel import register_inspect_excel_tool
-    from aeris.tools.bash_tool import register_bash_tool
-    from aeris.tools.load_skill import register_load_skill_tool
-    from aeris.tools.rag_tool import register_rag_tool
+    from meditatio.tools.base import get_tool_registry
+    # from meditatio.tools.conversation_search import register_conversation_search_tool
+    # from meditatio.tools.file_tools import register_file_tools
+    # from meditatio.tools.schedule_tools import register_schedule_tools
+    # from meditatio.tools.analyze_excel import register_inspect_excel_tool
+    from meditatio.tools.bash_tool import register_bash_tool
+    from meditatio.tools.load_skill import register_load_skill_tool
+    from meditatio.tools.rag_tool import register_rag_tool
 
     registry = get_tool_registry()
     # register_conversation_search_tool(registry)

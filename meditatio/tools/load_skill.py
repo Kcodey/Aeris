@@ -2,8 +2,8 @@
 
 from typing import Dict
 
-from aeris.skills.registry import get_skill_registry
-from aeris.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.skills.registry import get_skill_registry
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
 
 
 class LoadSkillTool(Tool):

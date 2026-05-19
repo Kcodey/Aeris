@@ -3,9 +3,9 @@ from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session
-from aeris.routers.auth import get_current_user, TokenData
-from aeris.schemas.chat import (
+from meditatio.database import get_session
+from meditatio.routers.auth import get_current_user, TokenData
+from meditatio.schemas.chat import (
     ChatRequest,
     ChatResponse,
     ConversationCreate,
@@ -14,7 +14,7 @@ from aeris.schemas.chat import (
     ConversationWithMessages,
     MessageResponse,
 )
-from aeris.services.chat_service import ChatService
+from meditatio.services.chat_service import ChatService
 
 router = APIRouter(prefix="/conversations", tags=["chat"])
 

@@ -2,7 +2,7 @@ from typing import Any, Dict, List
 
 from sqlalchemy import text
 
-from aeris.tools.base import Tool, ToolParameter, ToolResult
+from meditatio.tools.base import Tool, ToolParameter, ToolResult
 
 
 class ConversationSearchTool(Tool):

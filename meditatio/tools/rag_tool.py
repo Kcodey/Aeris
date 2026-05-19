@@ -1,9 +1,9 @@
 from typing import Dict, Optional
 
-from aeris.tools.base import Tool, ToolParameter, ToolResult, get_tool_registry
-from aeris.services.embedding_service import EmbeddingService
-from aeris.services.knowledge_base_service import KnowledgeBaseService
-from aeris.database import async_session
+from meditatio.tools.base import Tool, ToolParameter, ToolResult, get_tool_registry
+from meditatio.services.embedding_service import EmbeddingService
+from meditatio.services.knowledge_base_service import KnowledgeBaseService
+from meditatio.database import async_session
 
 EMBEDDING_MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
 
@@ -67,7 +67,7 @@ class RAGSearchTool(Tool):
         """执行知识库检索"""
         try:
             from sqlmodel import select
-            from aeris.models.knowledge_base import KnowledgeBase
+            from meditatio.models.knowledge_base import KnowledgeBase
 
             # 解析 KB IDs
             kb_ids = None

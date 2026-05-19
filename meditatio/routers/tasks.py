@@ -3,15 +3,15 @@ from typing import Annotated, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from aeris.database import get_session
-from aeris.routers.auth import get_current_user, TokenData
-from aeris.schemas.task import (
+from meditatio.database import get_session
+from meditatio.routers.auth import get_current_user, TokenData
+from meditatio.schemas.task import (
     TaskCreate,
     TaskUpdate,
     TaskResponse,
     TaskListResponse,
 )
-from aeris.services.task_service import TaskService
+from meditatio.services.task_service import TaskService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
