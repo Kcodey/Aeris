@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Routes, Route } from 'react-router-dom'
 import { Menu } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import ChatPage from '../../pages/ChatPage'
+import KnowledgeBasePage from '../../pages/KnowledgeBasePage'
 import MonitoringPage from '../../pages/MonitoringPage'
 import { chatApi } from '../../services/chat'
 import { Conversation } from '../../types/chat'
@@ -123,6 +124,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             />
           } />
           <Route path="/monitoring" element={<MonitoringPage />} />
+          <Route path="/kb" element={<KnowledgeBasePage />} />
         </Routes>
       </main>
     </div>
