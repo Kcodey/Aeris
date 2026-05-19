@@ -11,12 +11,34 @@ interface FileRecord {
   size_display?: string
 }
 
+const TOOL_NAME_ALIAS: Record<string, string> = {
+  rag_search: '知识库搜索',
+  load_skill: '加载技能',
+  bash: '执行命令',
+  conversation_search: '对话搜索',
+  schedule_create: '创建日程',
+  schedule_list: '查看日程',
+  schedule_delete: '删除日程',
+  file_write: '写文件',
+  file_list: '列出文件',
+  inspect_excel: '分析 Excel',
+}
+
+interface ToolCall {
+  id: string
+  name: string
+  arguments: string
+  status: 'pending' | 'done'
+  result?: string
+}
+
 interface Message {
   id: number
   role: 'user' | 'assistant'
   content: string
   file_ids?: number[]
   file_records?: FileRecord[]
+  tool_calls?: ToolCall[]
 }
 
 interface MessageBubbleProps {
@@ -25,7 +47,6 @@ interface MessageBubbleProps {
   filePreviews?: Record<number, string>
 }
 
-// 根据 MIME 类型返回对应的文件图标
 const getFileIcon = (mimeType?: string) => {
   if (mimeType?.startsWith('image/')) return <FileImage size={18} className="text-brand" />
   if (mimeType?.includes('spreadsheet') || mimeType?.includes('excel')) return <FileSpreadsheet size={18} className="text-green-600" />
@@ -33,7 +54,6 @@ const getFileIcon = (mimeType?: string) => {
   return <File size={18} className="text-content-tertiary" />
 }
 
-// 文件附件卡片
 const FileAttachmentCard: React.FC<{ file: FileRecord; previewUrl?: string }> = ({ file, previewUrl }) => {
   const isImage = file.mime_type?.startsWith('image/')
 
@@ -60,7 +80,6 @@ const FileAttachmentCard: React.FC<{ file: FileRecord; previewUrl?: string }> = 
   )
 }
 
-// 简化文件附件提示（只有 file_ids 时）
 const FileAttachmentHint: React.FC<{ count: number }> = ({ count }) => (
   <div className="flex items-center gap-1.5 bg-white/60 border border-border rounded-lg px-3 py-1.5 w-fit">
     <File size={14} className="text-content-tertiary" />
@@ -74,15 +93,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
   filePreviews = {},
 }) => {
   const isUser = message.role === 'user'
+  // const hasPendingTool = message.tool_calls?.some(tc => tc.status === 'pending')
+  // 保留你正确的逻辑
+  // const showEllipsis = isStreaming && !message.content
+  const contentVisible = typeof message.content === 'string' && message.content.trim().length > 0
+  const showEllipsis = isStreaming && !contentVisible
 
-  // 判断是否有文件附件
   const hasFileRecords = message.file_records && message.file_records.length > 0
   const hasFileIds = message.file_ids && message.file_ids.length > 0
   const hasAttachments = hasFileRecords || hasFileIds
 
   return (
     <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse self-end' : ''} max-w-[80%]`}>
-      {/* Avatar */}
       <div
         className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
           isUser
@@ -93,11 +115,10 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         {isUser ? <User size={16} /> : <Bot size={16} />}
       </div>
 
-      {/* Bubble + Attachments */}
       <div className="flex flex-col gap-1.5">
-        {/* Message Bubble */}
+        {/* 🔥 修复1：给气泡增加固定最小高度，永不塌陷（核心！） */}
         <div
-          className={`px-4 py-3 text-body leading-relaxed shadow-subtle ${
+          className={`px-4 py-3 text-body leading-relaxed shadow-subtle min-h-[24px] ${
             isUser
               ? 'bg-content-primary text-white rounded-2xl rounded-tr-sm'
               : 'bg-brand-light border border-amber-100 rounded-2xl rounded-tl-sm text-[#44403c]'
@@ -105,16 +126,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
         >
           {isUser ? (
             message.content
-          ) : isStreaming && !message.content ? (
-            <span className="inline-flex items-center gap-1 text-content-tertiary">
-              AI 思考中
-              <span className="inline-flex">
-                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
-              </span>
+          ) : showEllipsis ? (
+            <span className="inline-flex">
+              <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+              <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
             </span>
           ) : (
+            // 🔥 修复2：兜底渲染！空内容时展示透明占位符，彻底消灭空白
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -139,15 +158,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 tr: ({ children }) => <tr className="even:bg-gray-50">{children}</tr>,
               }}
             >
-              {message.content || ''}
+              {/* 兜底：无内容时显示一个透明的点，占位不显示 */}
+              {message.content || <span className="opacity-0">.</span>}
             </ReactMarkdown>
           )}
         </div>
 
-        {/* File Attachments (单独显示，不和文字混在一起) */}
         {isUser && hasAttachments && (
           <div className="flex flex-col gap-1.5">
-            {/* 有完整文件记录时显示卡片 */}
             {hasFileRecords && message.file_records!.map((file) => (
               <FileAttachmentCard
                 key={file.id}
@@ -155,10 +173,29 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                 previewUrl={filePreviews[file.id]}
               />
             ))}
-            {/* 只有 file_ids 时显示简化提示 */}
             {!hasFileRecords && hasFileIds && (
               <FileAttachmentHint count={message.file_ids!.length} />
             )}
+          </div>
+        )}
+
+        {!isUser && message.tool_calls && message.tool_calls.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            {message.tool_calls.map((tc) => (
+              <div key={tc.id} className="flex items-center gap-2 text-xs">
+                {tc.status === 'pending' ? (
+                  <div className="flex items-center gap-1.5 text-amber-600">
+                    <span className="animate-spin">⟳</span>
+                    <span className="bg-amber-50 px-2 py-0.5 rounded">{TOOL_NAME_ALIAS[tc.name] || tc.name}</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-green-600">
+                    <span>✓</span>
+                    <span className="bg-green-50 px-2 py-0.5 rounded">{TOOL_NAME_ALIAS[tc.name] || tc.name}</span>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
       </div>

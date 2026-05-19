@@ -515,6 +515,16 @@ class AgentEngine:
                 logger.info(f"[AgentEngine] Executing tool: {tool_call.name}({tool_call.arguments})")
                 result = await self._execute_tool(tool_call, context)
                 logger.info(f"[AgentEngine] Tool result: success={result.success}, data={result.data!r}, error={result.error!r}")
+
+                # Send tool_result event to WebSocket
+                yield {
+                    "type": "tool_result",
+                    "tool": tool_call.name,
+                    "success": result.success,
+                    "result": str(result.data)[:500] if result.data else None,  # 截断结果
+                    "error": result.error,
+                }
+
                 tool_calls_executed.append({
                     "tool": tool_call.name,
                     "arguments": tool_call.arguments,

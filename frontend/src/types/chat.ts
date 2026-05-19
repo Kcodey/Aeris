@@ -3,11 +3,19 @@ export interface Message {
   conversation_id: number;
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | null;
-  tool_calls?: any[];
+  tool_calls?: ToolCall[];
   file_ids?: number[];
   created_at: string;
   // 前端扩展：关联的文件记录（用于图片展示）
   file_records?: any[];
+}
+
+export interface ToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+  status: 'pending' | 'done';
+  result?: string;  // 结果摘要
 }
 
 export interface Conversation {

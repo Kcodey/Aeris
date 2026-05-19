@@ -32,7 +32,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
   useEffect(() => {
     if (conversationId) {
       setIsStreaming(false)
+      setLoading(false)
       setAttachedFiles([])
+      setMessages([])
       loadMessages()
     }
   }, [conversationId])
@@ -40,6 +42,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
   useEffect(() => {
     const token = getToken()
     if (!token) return
+
+    // 关闭旧 WebSocket
+    if (wsRef.current) {
+      wsRef.current.close()
+      wsRef.current = null
+    }
 
     const ws = createWebSocket(token)
     wsRef.current = ws
@@ -66,9 +74,39 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
             const last = prev[prev.length - 1]
             if (last && last.role === 'assistant') {
               const updated = [...prev]
+              const toolCalls = last.tool_calls ? [...last.tool_calls] : []
+              toolCalls.push({
+                id: chunk.tool_call?.id || String(Date.now()),
+                name: chunk.name,
+                arguments: chunk.arguments,
+                status: 'pending',
+              })
               updated[updated.length - 1] = {
                 ...last,
-                content: (last.content || '') + `\n[调用工具: ${chunk.name}]`,
+                tool_calls: toolCalls,
+              }
+              return updated
+            }
+            return prev
+          })
+          break
+        case 'tool_result':
+          setMessages((prev) => {
+            const last = prev[prev.length - 1]
+            if (last && last.role === 'assistant' && last.tool_calls) {
+              const updated = [...prev]
+              const toolCalls = [...last.tool_calls]
+              const idx = toolCalls.findIndex(tc => tc.status === 'pending')
+              if (idx !== -1) {
+                toolCalls[idx] = {
+                  ...toolCalls[idx],
+                  status: 'done',
+                  result: chunk.success ? (chunk.result || '完成') : chunk.error,
+                }
+              }
+              updated[updated.length - 1] = {
+                ...last,
+                tool_calls: toolCalls,
               }
               return updated
             }
@@ -76,13 +114,17 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
           })
           break
         case 'done':
-          setIsStreaming(false)
-          setLoading(false)
-          onMessageSent?.()
+          if (wsRef.current === ws) {
+            setIsStreaming(false)
+            setLoading(false)
+            onMessageSent?.()
+          }
           break
         case 'error':
-          setIsStreaming(false)
-          setLoading(false)
+          if (wsRef.current === ws) {
+            setIsStreaming(false)
+            setLoading(false)
+          }
           break
       }
     }
@@ -102,10 +144,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
     }
 
     return () => {
-      wsRef.current = null
-      ws.close()
+      if (wsRef.current === ws) {
+        wsRef.current = null
+        ws.close()
+      }
     }
-  }, [])
+  }, [conversationId])
 
   const loadMessages = async () => {
     if (!conversationId) return
@@ -211,6 +255,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, onMessageSent, 
       conversation_id: conversationId,
       role: 'assistant',
       content: '',
+      tool_calls: [],
       created_at: new Date().toISOString(),
     }
 
