@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, AsyncMock, patch
 
-from aeris.services.agent_engine import AgentEngine, AgentContext, AgentResult
+from meditatio.services.agent_engine import AgentEngine, AgentContext, AgentResult
 
 
 @pytest.mark.asyncio

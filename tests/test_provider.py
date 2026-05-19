@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import Mock, AsyncMock
 
-from aeris.services.provider_manager import SGLangProvider, CompletionResponse
+from meditatio.services.provider_manager import SGLangProvider, CompletionResponse
 
 
 @pytest.mark.asyncio

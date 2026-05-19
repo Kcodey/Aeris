@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from aeris.services.agent_engine import AgentEngine, AgentContext
-from aeris.services.provider_manager import StreamChunk, ToolCall
+from meditatio.services.agent_engine import AgentEngine, AgentContext
+from meditatio.services.provider_manager import StreamChunk, ToolCall
 
 
 @pytest.fixture
@@ -39,9 +39,9 @@ async def test_run_stream_pure_text(mock_provider, mock_tool_registry):
 
     mock_provider.chat_completion_stream = mock_stream
 
-    with patch("aeris.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
-         patch("aeris.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
-         patch("aeris.services.agent_engine.get_tokenizer", return_value=MagicMock()):
+    with patch("meditatio.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
+         patch("meditatio.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
+         patch("meditatio.services.agent_engine.get_tokenizer", return_value=MagicMock()):
 
         engine = AgentEngine()
         context = AgentContext(user_id=1, conversation_id=1, message_id=1)
@@ -98,9 +98,9 @@ async def test_run_stream_with_tool_call(mock_provider, mock_tool_registry):
     async def mock_execute_tool(tool_call, context):
         return MagicMock(success=True, data={"result": "found"})
 
-    with patch("aeris.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
-         patch("aeris.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
-         patch("aeris.services.agent_engine.get_tokenizer", return_value=MagicMock()):
+    with patch("meditatio.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
+         patch("meditatio.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
+         patch("meditatio.services.agent_engine.get_tokenizer", return_value=MagicMock()):
 
         engine = AgentEngine()
         # Patch _execute_tool to avoid actual tool execution
@@ -146,9 +146,9 @@ async def test_run_stream_max_iterations(mock_provider, mock_tool_registry):
     async def mock_execute_tool(tool_call, context):
         return MagicMock(success=True, data={})
 
-    with patch("aeris.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
-         patch("aeris.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
-         patch("aeris.services.agent_engine.get_tokenizer", return_value=MagicMock()):
+    with patch("meditatio.services.agent_engine.get_provider_manager", return_value=MagicMock(get_provider=lambda name: mock_provider)), \
+         patch("meditatio.services.agent_engine.get_tool_registry", return_value=mock_tool_registry), \
+         patch("meditatio.services.agent_engine.get_tokenizer", return_value=MagicMock()):
 
         engine = AgentEngine()
         engine._execute_tool = mock_execute_tool

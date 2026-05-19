@@ -6,8 +6,8 @@ import io
 @pytest.mark.asyncio
 async def test_upload_file(client, db_session):
     """Test file upload."""
-    from aeris.services.auth_service import AuthService
-    from aeris.utils.security import create_access_token
+    from meditatio.services.auth_service import AuthService
+    from meditatio.utils.security import create_access_token
 
     # Create user
     auth_service = AuthService(db_session)
@@ -32,7 +32,7 @@ async def test_upload_file(client, db_session):
 @pytest.mark.asyncio
 async def test_list_files(client, db_session):
     """Test list files."""
-    from aeris.services.auth_service import AuthService
+    from meditatio.services.auth_service import AuthService
 
     auth_service = AuthService(db_session)
     user = await auth_service.create_user("fileuser2", "password123")

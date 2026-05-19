@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
 
-from aeris.main import app
-from aeris.database import get_session
+from meditatio.main import app
+from meditatio.database import get_session
 
 # Test database URL (using SQLite in-memory for tests)
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"

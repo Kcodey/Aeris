@@ -1,5 +1,5 @@
 import pytest
-from aeris.services.embedding_service import EmbeddingService
+from meditatio.services.embedding_service import EmbeddingService
 
 MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
 

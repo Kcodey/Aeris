@@ -17,13 +17,13 @@ def mock_scheduler():
 @pytest.mark.asyncio
 async def test_create_cron_task(client, db_session, mock_scheduler):
     """Test creating a cron task."""
-    from aeris.services.auth_service import AuthService
+    from meditatio.services.auth_service import AuthService
 
     auth_service = AuthService(db_session)
     user = await auth_service.create_user("taskuser", "password123")
     token = auth_service.create_access_token_for_user(user)
 
-    with patch("aeris.services.task_service.get_task_scheduler", return_value=mock_scheduler):
+    with patch("meditatio.services.task_service.get_task_scheduler", return_value=mock_scheduler):
         response = await client.post(
             "/api/v1/tasks",
             json={
@@ -49,7 +49,7 @@ async def test_create_cron_task(client, db_session, mock_scheduler):
 @pytest.mark.asyncio
 async def test_list_tasks(client, db_session):
     """Test listing tasks."""
-    from aeris.services.auth_service import AuthService
+    from meditatio.services.auth_service import AuthService
 
     auth_service = AuthService(db_session)
     user = await auth_service.create_user("taskuser2", "password123")

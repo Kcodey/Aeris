@@ -2,14 +2,14 @@ import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 from fastapi.testclient import TestClient
 
-from aeris.utils.security import create_access_token
+from meditatio.utils.security import create_access_token
 
 
 @pytest.fixture(scope="module")
 def test_client():
     """Create TestClient with init_db patched to avoid real DB connections."""
-    with patch("aeris.main.init_db", new_callable=AsyncMock):
-        from aeris.main import app
+    with patch("meditatio.main.init_db", new_callable=AsyncMock):
+        from meditatio.main import app
         client = TestClient(app)
         yield client
 
@@ -51,9 +51,9 @@ def test_websocket_chat_streaming(test_client, auth_token):
     mock_conversation = MagicMock()
     mock_conversation.id = 1
 
-    with patch("aeris.routers.ws.get_agent_engine", return_value=mock_engine), \
-         patch("aeris.routers.ws.get_session_context", mock_session_context), \
-         patch("aeris.routers.ws.ChatService") as MockChatService:
+    with patch("meditatio.routers.ws.get_agent_engine", return_value=mock_engine), \
+         patch("meditatio.routers.ws.get_session_context", mock_session_context), \
+         patch("meditatio.routers.ws.ChatService") as MockChatService:
 
         mock_service = MagicMock()
         mock_service.get_conversation = AsyncMock(return_value=mock_conversation)
@@ -92,9 +92,9 @@ def test_websocket_chat_tool_call(test_client, auth_token):
     mock_conversation = MagicMock()
     mock_conversation.id = 1
 
-    with patch("aeris.routers.ws.get_agent_engine", return_value=mock_engine), \
-         patch("aeris.routers.ws.get_session_context", mock_session_context), \
-         patch("aeris.routers.ws.ChatService") as MockChatService:
+    with patch("meditatio.routers.ws.get_agent_engine", return_value=mock_engine), \
+         patch("meditatio.routers.ws.get_session_context", mock_session_context), \
+         patch("meditatio.routers.ws.ChatService") as MockChatService:
 
         mock_service = MagicMock()
         mock_service.get_conversation = AsyncMock(return_value=mock_conversation)
@@ -134,9 +134,9 @@ def test_websocket_conversation_not_found(test_client, auth_token):
     mock_engine = MagicMock()
     mock_engine.run_stream = mock_run_stream
 
-    with patch("aeris.routers.ws.get_agent_engine", return_value=mock_engine), \
-         patch("aeris.routers.ws.get_session_context", mock_session_context), \
-         patch("aeris.routers.ws.ChatService") as MockChatService:
+    with patch("meditatio.routers.ws.get_agent_engine", return_value=mock_engine), \
+         patch("meditatio.routers.ws.get_session_context", mock_session_context), \
+         patch("meditatio.routers.ws.ChatService") as MockChatService:
 
         mock_service = MagicMock()
         mock_service.get_conversation = AsyncMock(return_value=None)

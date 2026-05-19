@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from aeris.services.provider_manager import SGLangProvider, StreamChunk
+from meditatio.services.provider_manager import SGLangProvider, StreamChunk
 
 
 @pytest.fixture

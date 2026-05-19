@@ -22,9 +22,9 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, "/Users/dykong/Desktop/Aeris")
 
-from aeris.services.agent_engine import AgentEngine, AgentContext
-from aeris.services.file_service import FileService
-from aeris.database import get_session_context
+from meditatio.services.agent_engine import AgentEngine, AgentContext
+from meditatio.services.file_service import FileService
+from meditatio.database import get_session_context
 
 
 async def upload_and_read_file(file_path: str, user_id: int = 1) -> tuple:

@@ -1,5 +1,5 @@
 import pytest
-from aeris.services.knowledge_base_service import SearchResult
+from meditatio.services.knowledge_base_service import SearchResult
 
 
 def test_search_result_structure():

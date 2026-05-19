@@ -12,7 +12,7 @@ import sys
 
 sys.path.insert(0, "/Users/dykong/Desktop/Aeris")
 
-from aeris.services.agent_engine import AgentEngine, AgentContext
+from meditatio.services.agent_engine import AgentEngine, AgentContext
 
 
 # 模拟 Excel 内容（Markdown 表格格式）
