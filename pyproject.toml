@@ -3,14 +3,14 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "aeris"
+name = "meditatio"
 version = "0.1.0"
 description = "A lightweight AI Agent platform"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
 authors = [
-    {name = "Aeris Team"}
+    {name = "Meditatio Team"}
 ]
 dependencies = [
     "fastapi>=0.109.0",
