@@ -18,6 +18,7 @@ export interface Conversation {
   created_at: string;
   updated_at: string | null;
   last_message_preview?: string | null;
+  knowledge_base_ids?: number[];
 }
 
 export interface ConversationWithMessages extends Conversation {
