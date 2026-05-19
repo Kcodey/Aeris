@@ -5,6 +5,7 @@ from typing import List
 import uuid
 import aiofiles
 from pathlib import Path
+from datetime import datetime
 
 from meditatio.database import get_session
 from meditatio.schemas.rag import (
@@ -225,6 +226,7 @@ async def upload_document(
 
         doc.status = "ready"
         doc.chunk_count = len(chunks)
+        kb.updated_at = datetime.utcnow()
     except Exception as e:
         doc.status = "failed"
         doc.error_message = str(e)
@@ -300,6 +302,7 @@ async def fetch_url(
 
         doc.status = "ready"
         doc.chunk_count = len(chunks)
+        kb.updated_at = datetime.utcnow()
     except Exception as e:
         doc.status = "failed"
         doc.error_message = str(e)
