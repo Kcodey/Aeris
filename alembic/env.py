@@ -7,9 +7,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-from aeris.config import get_settings
-from aeris.models import SQLModel
-from aeris.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace, KnowledgeBase, Document, Chunk
+from meditatio.config import get_settings
+from meditatio.models import SQLModel
+from meditatio.models import User, Conversation, Message, ScheduledTask, FileRecord, LLMTrace, KnowledgeBase, Document, Chunk
 
 settings = get_settings()
 
