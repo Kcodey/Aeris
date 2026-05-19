@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+import json
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class MessageCreate(BaseModel):
@@ -40,6 +41,23 @@ class ConversationResponse(BaseModel):
     created_at: datetime
     updated_at: Optional[datetime]
     last_message_preview: Optional[str] = None  # 最后一条消息预览
+    knowledge_base_ids: Optional[List[int]] = None  # 关联的知识库
+
+    @field_validator('knowledge_base_ids', mode='before')
+    @classmethod
+    def parse_knowledge_base_ids(cls, v):
+        if v is None:
+            return None
+        if isinstance(v, list):
+            return v
+        if isinstance(v, str):
+            if not v:
+                return None
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return None
 
     class Config:
         from_attributes = True
