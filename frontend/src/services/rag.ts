@@ -3,12 +3,11 @@ import api from './api'
 export interface KnowledgeBase {
   id: number
   name: string
-  description: string
-  collection_name: string
-  created_by: number
   is_active: boolean
   created_at: string
-  updated_at: string
+  updated_at: string | null
+  document_count: number
+  chunk_count: number
 }
 
 export const ragApi = {

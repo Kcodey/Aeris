@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { message } from 'antd'
-import { BookOpen, FileText, Clock } from 'lucide-react'
+import { BookOpen, FileText, Layers, Clock } from 'lucide-react'
 import { ragApi, KnowledgeBase } from '../services/rag'
 
 export default function KnowledgeBasePage() {
@@ -66,17 +66,18 @@ export default function KnowledgeBasePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="font-medium text-content-primary text-base">{kb.name}</div>
-                <div className="text-sm text-content-secondary mt-1">
-                  {kb.description || '暂无描述'}
-                </div>
                 <div className="flex items-center gap-4 mt-2 text-xs text-content-tertiary">
+                  <span className="flex items-center gap-1">
+                    <FileText size={12} />
+                    {kb.document_count} 篇文档
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Layers size={12} />
+                    {kb.chunk_count} chunks
+                  </span>
                   <span className="flex items-center gap-1">
                     <Clock size={12} />
                     {formatDate(kb.updated_at, kb.created_at)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <FileText size={12} />
-                    {kb.collection_name}
                   </span>
                 </div>
               </div>

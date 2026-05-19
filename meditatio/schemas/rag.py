@@ -13,11 +13,11 @@ class KnowledgeBaseResponse(BaseModel):
     """知识库响应"""
     id: int
     name: str
-    description: str
-    collection_name: str
     is_active: bool
     created_at: datetime
     updated_at: Optional[datetime] = None
+    document_count: int = 0
+    chunk_count: int = 0
 
     class Config:
         from_attributes = True

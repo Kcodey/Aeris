@@ -65,12 +65,33 @@ async def list_knowledge_bases(
     session: AsyncSession = Depends(get_session),
 ):
     """列出所有启用的知识库"""
-    from sqlmodel import select
+    from sqlmodel import select, func
+    from meditatio.models.document import Document
+
     result = await session.execute(
         select(KnowledgeBase).where(KnowledgeBase.is_active == True)
     )
     kbs = result.scalars().all()
-    return kbs
+
+    # 统计每个 KB 的文档数和 chunk 数
+    responses = []
+    for kb in kbs:
+        doc_result = await session.execute(
+            select(func.count(Document.id), func.sum(Document.chunk_count))
+            .where(Document.knowledge_base_id == kb.id)
+        )
+        row = doc_result.one()
+        responses.append(KnowledgeBaseResponse(
+            id=kb.id,
+            name=kb.name,
+            is_active=kb.is_active,
+            created_at=kb.created_at,
+            updated_at=kb.updated_at,
+            document_count=row[0] or 0,
+            chunk_count=row[1] or 0,
+        ))
+
+    return responses
 
 
 @router.post("/kb", response_model=KnowledgeBaseResponse)
