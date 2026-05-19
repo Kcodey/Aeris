@@ -1,19 +1,19 @@
-# Aeris - Claude Code 项目指南
+# Meditatio - Claude Code 项目指南
 
 ## Python Environment
 
-This project uses a Conda environment named `aeris`.
+This project uses a Conda environment named `meditatio`.
 
 Before running Python commands, tests, or development scripts, activate the environment:
 
 ```bash
-conda activate aeris
+conda activate meditatio
 ```
 
 ## Project Structure
 
 ```
-aeris/
+meditatio/
 ├── main.py                 # FastAPI entry point
 ├── config.py               # Pydantic settings
 ├── database.py             # Async SQLAlchemy/SQLModel
