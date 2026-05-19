@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageSquare, BarChart3, LogOut, Plus, X, Edit2, Check, Trash2, Info } from 'lucide-react'
+import { MessageSquare, BarChart3, LogOut, Plus, X, Edit2, Check, Trash2, Info, BookOpen } from 'lucide-react'
 import { Conversation } from '../../types/chat'
 import { ConversationDetailDrawer } from '../Chat/ConversationDetailDrawer'
 
@@ -178,6 +178,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const navItems = [
     { key: '/', label: '对话', icon: MessageSquare },
+    { key: '/kb', label: '知识库', icon: BookOpen },
     { key: '/monitoring', label: '监控', icon: BarChart3 },
   ]
 
