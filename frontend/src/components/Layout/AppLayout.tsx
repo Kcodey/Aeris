@@ -124,7 +124,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ onLogout }) => {
             />
           } />
           <Route path="/monitoring" element={<MonitoringPage />} />
-          <Route path="/kb" element={<KnowledgeBasePage />} />
+          <Route path="/kb" element={
+            <KnowledgeBasePage
+              conversations={conversations}
+              selectedConversationId={selectedConversationId}
+              onRefreshConversations={refreshConversations}
+            />
+          } />
         </Routes>
       </main>
     </div>
