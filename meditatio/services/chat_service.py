@@ -245,28 +245,15 @@ class ChatService:
         return True
 
     async def _get_rag_context(self, conversation_id: int, user_message: str) -> str:
-        """获取对话关联知识库的 RAG 检索结果作为上下文"""
+        """获取知识库的 RAG 检索结果作为上下文（使用所有活跃知识库）"""
         try:
-            conversation = await self.get_conversation(None, conversation_id)
-            if not conversation or not conversation.knowledge_base_ids:
-                return ""
-
-            kb_ids = json.loads(conversation.knowledge_base_ids)
-            if not kb_ids:
-                return ""
-
-            # 获取知识库信息
             from meditatio.models.knowledge_base import KnowledgeBase
             from meditatio.services.embedding_service import EmbeddingService
             from meditatio.services.knowledge_base_service import KnowledgeBaseService
 
-            EMBEDDING_MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
-
+            # 获取所有活跃的知识库
             kb_result = await self.session.execute(
-                select(KnowledgeBase).where(
-                    KnowledgeBase.id.in_(kb_ids),
-                    KnowledgeBase.is_active == True
-                )
+                select(KnowledgeBase).where(KnowledgeBase.is_active == True)
             )
             kbs = kb_result.scalars().all()
             if not kbs:
@@ -278,6 +265,7 @@ class ChatService:
             ]
 
             # 执行搜索
+            EMBEDDING_MODEL_PATH = "/home/skdy/server/Aeris/models/all-MiniLM-L6-v2/models--sentence-transformers--all-MiniLM-L6-v2/snapshots/c9745ed1d9f207416be6d2e6f8de32d1f16199bf"
             embedding_service = EmbeddingService(EMBEDDING_MODEL_PATH)
             kb_service = KnowledgeBaseService(embedding_service)
             results = kb_service.search_multi(kb_infos=kb_infos, query=user_message, top_k=3)
