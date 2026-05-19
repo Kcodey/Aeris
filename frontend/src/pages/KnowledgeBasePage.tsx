@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Switch, message } from 'antd'
 import { Modal } from 'antd'
 import { BookOpen } from 'lucide-react'
