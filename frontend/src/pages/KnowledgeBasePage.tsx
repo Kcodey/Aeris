@@ -24,13 +24,18 @@ export default function KnowledgeBasePage() {
     }
   }
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return '-'
-    return new Date(dateStr).toLocaleDateString('zh-CN', {
+  const formatDate = (dateStr: string | null, fallback: string | null) => {
+    if (dateStr) return new Date(dateStr).toLocaleDateString('zh-CN', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     })
+    if (fallback) return new Date(fallback).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+    return '-'
   }
 
   return (
@@ -67,7 +72,7 @@ export default function KnowledgeBasePage() {
                 <div className="flex items-center gap-4 mt-2 text-xs text-content-tertiary">
                   <span className="flex items-center gap-1">
                     <Clock size={12} />
-                    {formatDate(kb.updated_at)}
+                    {formatDate(kb.updated_at, kb.created_at)}
                   </span>
                   <span className="flex items-center gap-1">
                     <FileText size={12} />
