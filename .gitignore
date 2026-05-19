@@ -73,3 +73,6 @@ skills-lock.json
 
 # Demo/test data
 data/
+models/
+aeris/tools/
+scripts/rag/02_embed_text.py
