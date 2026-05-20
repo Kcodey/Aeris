@@ -31,7 +31,27 @@ class DocumentUploadResponse(BaseModel):
     source_type: str
     source_path: str
     status: str
+    chunk_count: int = 0
     created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class KnowledgeBaseDetailResponse(BaseModel):
+    """知识库详情响应"""
+    id: int
+    name: str
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    document_count: int = 0
+    chunk_count: int = 0
+    documents: List[DocumentUploadResponse] = []
+
+    class Config:
+        from_attributes = True
 
 
 class URLFetchRequest(BaseModel):

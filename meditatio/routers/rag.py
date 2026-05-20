@@ -11,6 +11,7 @@ from meditatio.database import get_session
 from meditatio.schemas.rag import (
     KnowledgeBaseCreate,
     KnowledgeBaseResponse,
+    KnowledgeBaseDetailResponse,
     DocumentUploadResponse,
     URLFetchRequest,
     URLFetchResponse,
@@ -92,6 +93,60 @@ async def list_knowledge_bases(
         ))
 
     return responses
+
+
+@router.get("/kb/{kb_id}", response_model=KnowledgeBaseDetailResponse)
+async def get_knowledge_base_detail(
+    kb_id: int,
+    session: AsyncSession = Depends(get_session),
+):
+    """获取知识库详情（含文档列表）"""
+    from sqlmodel import select, func
+    from meditatio.models.document import Document
+
+    # 获取 KB
+    result = await session.execute(
+        select(KnowledgeBase).where(
+            KnowledgeBase.id == kb_id,
+            KnowledgeBase.is_active == True
+        )
+    )
+    kb = result.scalar_one_or_none()
+    if not kb:
+        raise HTTPException(status_code=404, detail="Knowledge base not found")
+
+    # 获取文档列表
+    doc_result = await session.execute(
+        select(Document).where(Document.knowledge_base_id == kb_id)
+    )
+    documents = doc_result.scalars().all()
+
+    # 统计
+    total_chunks = sum(doc.chunk_count or 0 for doc in documents)
+
+    return KnowledgeBaseDetailResponse(
+        id=kb.id,
+        name=kb.name,
+        is_active=kb.is_active,
+        created_at=kb.created_at,
+        updated_at=kb.updated_at,
+        document_count=len(documents),
+        chunk_count=total_chunks,
+        documents=[
+            DocumentUploadResponse(
+                id=doc.id,
+                knowledge_base_id=doc.knowledge_base_id,
+                title=doc.title,
+                source_type=doc.source_type,
+                source_path=doc.source_path,
+                status=doc.status,
+                chunk_count=doc.chunk_count,
+                created_at=doc.created_at,
+                updated_at=doc.updated_at,
+            )
+            for doc in documents
+        ]
+    )
 
 
 @router.post("/kb", response_model=KnowledgeBaseResponse)
